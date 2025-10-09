@@ -42,7 +42,7 @@ curl -X GET "http://localhost:5000/api/dashboard/weather?projectId=YOUR_PROJECT_
 ### 4. Get Sustainability Score
 
 ```bash
-curl -X GET "http://localhost:5000/api/dashboard/sustainability-score?projectId=YOUR_PROJECT_ID"
+curl -X GET "http://localhost:5000/api/dashboard/sustainability-score?projectId=68e762e50c832c2d142ffb21"
 ```
 
 ---
