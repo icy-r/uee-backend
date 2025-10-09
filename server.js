@@ -8,6 +8,7 @@ const { initializeFirebase } = require('./src/config/firebase');
 const errorHandler = require('./src/middleware/errorHandler');
 
 // Import routes
+const projectRoutes = require('./src/routes/project.routes');
 const dashboardRoutes = require('./src/routes/dashboard.routes');
 const materialRoutes = require('./src/routes/material.routes');
 const taskRoutes = require('./src/routes/task.routes');
@@ -38,6 +39,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/projects', projectRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/tasks', taskRoutes);
