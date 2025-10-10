@@ -1,0 +1,5575 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sustainable Construction Management API",
+    "description": "Backend API for Sustainable Construction MVP App with AI features.\nThis API provides endpoints for managing construction projects, tasks, materials, budgets, and documents with sustainability tracking and AI-powered features.\n",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local development server"
+    },
+    {
+      "url": "https://your-production-domain.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "Projects",
+      "description": "Project management operations"
+    },
+    {
+      "name": "Tasks",
+      "description": "Task management and tracking"
+    },
+    {
+      "name": "Materials",
+      "description": "Material inventory and sustainability tracking"
+    },
+    {
+      "name": "Budget",
+      "description": "Budget management and expense tracking"
+    },
+    {
+      "name": "Documents",
+      "description": "Document management and AI processing"
+    },
+    {
+      "name": "Dashboard",
+      "description": "Dashboard analytics and overview"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "FirebaseAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Firebase authentication token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "error"
+          },
+          "message": {
+            "type": "string",
+            "example": "An error occurred"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Success": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "location",
+          "startDate",
+          "expectedEndDate",
+          "projectType",
+          "owner",
+          "createdBy"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200,
+            "example": "Green Building Complex"
+          },
+          "description": {
+            "type": "string",
+            "example": "Eco-friendly residential complex with solar panels"
+          },
+          "location": {
+            "type": "string",
+            "example": "Colombo, Sri Lanka"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "expectedEndDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-12-31T00:00:00.000Z"
+          },
+          "actualEndDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planning",
+              "in_progress",
+              "on_hold",
+              "completed",
+              "cancelled"
+            ],
+            "default": "planning"
+          },
+          "progressPercentage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 0
+          },
+          "sustainabilityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 0
+          },
+          "teamSize": {
+            "type": "number",
+            "default": 0
+          },
+          "projectType": {
+            "type": "string",
+            "enum": [
+              "residential",
+              "commercial",
+              "industrial",
+              "infrastructure"
+            ],
+            "example": "residential"
+          },
+          "projectSize": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "number",
+                "example": 5000
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "sqft",
+                  "sqm",
+                  "acres"
+                ],
+                "example": "sqft"
+              }
+            }
+          },
+          "owner": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "createdBy": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "required": [
+          "projectId",
+          "title",
+          "description",
+          "deadline",
+          "assignedTo",
+          "assignedBy"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200,
+            "example": "Install solar panels"
+          },
+          "description": {
+            "type": "string",
+            "example": "Install 20 solar panels on the roof"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "completed"
+            ],
+            "default": "not_started"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "medium"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-30T00:00:00.000Z"
+          },
+          "assignedTo": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "worker1@example.com",
+              "worker2@example.com"
+            ]
+          },
+          "assignedBy": {
+            "type": "string",
+            "example": "manager@example.com"
+          },
+          "timeLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hours": {
+                  "type": "number",
+                  "minimum": 0,
+                  "example": 8
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Installed 10 panels"
+                },
+                "loggedBy": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "example": "https://storage.example.com/photo.jpg"
+                },
+                "filename": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                },
+                "uploadedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "uploadedBy": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "totalHours": {
+            "type": "number",
+            "readOnly": true
+          },
+          "isOverdue": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Material": {
+        "type": "object",
+        "required": [
+          "projectId",
+          "name",
+          "category",
+          "quantity",
+          "unit"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "name": {
+            "type": "string",
+            "example": "Recycled Steel Bars"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "cement",
+              "steel",
+              "wood",
+              "bricks",
+              "sand",
+              "gravel",
+              "paint",
+              "electrical",
+              "plumbing",
+              "other"
+            ],
+            "example": "steel"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 0,
+            "example": 100
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "kg",
+              "ton",
+              "liter",
+              "gallon",
+              "piece",
+              "sqft",
+              "sqm",
+              "cubic_meter",
+              "bag"
+            ],
+            "example": "ton"
+          },
+          "unitCost": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0,
+            "example": 50000
+          },
+          "supplier": {
+            "type": "string",
+            "example": "Green Materials Ltd"
+          },
+          "ecoFriendly": {
+            "type": "boolean",
+            "default": false,
+            "example": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "usageLog": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "quantity": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "usedFor": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "wasteLog": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "quantity": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "reorderLevel": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lastRestocked": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCost": {
+            "type": "number",
+            "readOnly": true
+          },
+          "totalUsage": {
+            "type": "number",
+            "readOnly": true
+          },
+          "totalWaste": {
+            "type": "number",
+            "readOnly": true
+          },
+          "currentInventory": {
+            "type": "number",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Budget": {
+        "type": "object",
+        "required": [
+          "projectId",
+          "totalBudget"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "totalBudget": {
+            "type": "number",
+            "minimum": 0,
+            "example": 10000000
+          },
+          "allocations": {
+            "type": "object",
+            "properties": {
+              "materials": {
+                "type": "number",
+                "minimum": 0,
+                "default": 0
+              },
+              "labor": {
+                "type": "number",
+                "minimum": 0,
+                "default": 0
+              },
+              "equipment": {
+                "type": "number",
+                "minimum": 0,
+                "default": 0
+              },
+              "other": {
+                "type": "number",
+                "minimum": 0,
+                "default": 0
+              }
+            }
+          },
+          "expenses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "_id": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "materials",
+                    "labor",
+                    "equipment",
+                    "other"
+                  ]
+                },
+                "amount": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "description": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "invoiceNumber": {
+                  "type": "string"
+                },
+                "vendor": {
+                  "type": "string"
+                },
+                "paymentStatus": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "paid",
+                    "overdue"
+                  ],
+                  "default": "pending"
+                },
+                "paymentDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "addedBy": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "costPredictions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "materialType": {
+                  "type": "string"
+                },
+                "currentPrice": {
+                  "type": "number"
+                },
+                "predictedPrice": {
+                  "type": "number"
+                },
+                "predictionDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "marketTrend": {
+                  "type": "string",
+                  "enum": [
+                    "increasing",
+                    "decreasing",
+                    "stable"
+                  ]
+                }
+              }
+            }
+          },
+          "contingencyPercentage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 50,
+            "default": 10
+          },
+          "currency": {
+            "type": "string",
+            "default": "LKR"
+          },
+          "totalExpenses": {
+            "type": "number",
+            "readOnly": true
+          },
+          "remainingBudget": {
+            "type": "number",
+            "readOnly": true
+          },
+          "utilizationPercentage": {
+            "type": "number",
+            "readOnly": true
+          },
+          "expensesByCategory": {
+            "type": "object",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "required": [
+          "projectId",
+          "filename",
+          "originalName",
+          "fileType",
+          "fileSize",
+          "filePath",
+          "uploadedBy"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "filename": {
+            "type": "string",
+            "example": "blueprint-2024-01-15.pdf"
+          },
+          "originalName": {
+            "type": "string",
+            "example": "Site Blueprint.pdf"
+          },
+          "fileType": {
+            "type": "string",
+            "example": "application/pdf"
+          },
+          "fileSize": {
+            "type": "number",
+            "example": 1024000
+          },
+          "filePath": {
+            "type": "string",
+            "example": "/uploads/documents/blueprint-2024-01-15.pdf"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "permit",
+              "contract",
+              "invoice",
+              "report",
+              "photo",
+              "other"
+            ],
+            "default": "other"
+          },
+          "description": {
+            "type": "string"
+          },
+          "uploadedBy": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "extractedText": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string"
+              },
+              "extractedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "n8n",
+                  "manual"
+                ]
+              }
+            }
+          },
+          "generatedTasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string"
+                },
+                "taskTitle": {
+                  "type": "string"
+                },
+                "generatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "created",
+                    "failed"
+                  ]
+                }
+              }
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isProcessed": {
+            "type": "boolean",
+            "default": false
+          },
+          "processingStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "completed",
+              "failed"
+            ],
+            "default": "pending"
+          },
+          "processingError": {
+            "type": "string"
+          },
+          "isImage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isPdf": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Check if the API is running",
+        "responses": {
+          "200": {
+            "description": "API is running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Sustainable Construction API is running"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get all projects",
+        "description": "Retrieve all projects with optional filtering and pagination",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "planning",
+                "in_progress",
+                "on_hold",
+                "completed",
+                "cancelled"
+              ]
+            },
+            "description": "Filter by project status"
+          },
+          {
+            "name": "projectType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "residential",
+                "commercial",
+                "industrial",
+                "infrastructure"
+              ]
+            },
+            "description": "Filter by project type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Project"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create new project",
+        "description": "Create a new construction project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "description",
+                  "location",
+                  "startDate",
+                  "expectedEndDate",
+                  "projectType",
+                  "owner",
+                  "createdBy"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200,
+                    "example": "Green Building Complex"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Eco-friendly residential complex"
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "Colombo, Sri Lanka"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-01T00:00:00.000Z"
+                  },
+                  "expectedEndDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-12-31T00:00:00.000Z"
+                  },
+                  "projectType": {
+                    "type": "string",
+                    "enum": [
+                      "residential",
+                      "commercial",
+                      "industrial",
+                      "infrastructure"
+                    ],
+                    "example": "residential"
+                  },
+                  "projectSize": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "example": 5000
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "sqft",
+                          "sqm",
+                          "acres"
+                        ],
+                        "example": "sqft"
+                      }
+                    }
+                  },
+                  "owner": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "createdBy": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "teamSize": {
+                    "type": "number",
+                    "example": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Project"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get project by ID",
+        "description": "Retrieve a single project by its ID",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Project"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update project",
+        "description": "Update project details",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "expectedEndDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "actualEndDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "planning",
+                      "in_progress",
+                      "on_hold",
+                      "completed",
+                      "cancelled"
+                    ]
+                  },
+                  "teamSize": {
+                    "type": "number"
+                  },
+                  "projectSize": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "sqft",
+                          "sqm",
+                          "acres"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Project"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete project",
+        "description": "Delete a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/progress": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update project progress",
+        "description": "Calculate and update project progress based on tasks",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "progressPercentage": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/sustainability": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update sustainability score",
+        "description": "Calculate and update sustainability score",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sustainability score updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sustainabilityScore": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get all tasks",
+        "description": "Retrieve all tasks with optional filtering and pagination",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "not_started",
+                "in_progress",
+                "completed"
+              ]
+            },
+            "description": "Filter by task status"
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "description": "Filter by priority"
+          },
+          {
+            "name": "assignedTo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by assigned user"
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter overdue tasks"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tasks": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Task"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Create new task",
+        "description": "Create a new task for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "title",
+                  "description",
+                  "deadline",
+                  "assignedTo",
+                  "assignedBy"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200,
+                    "example": "Install solar panels"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Install 20 solar panels on the roof"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "not_started",
+                      "in_progress",
+                      "completed"
+                    ],
+                    "default": "not_started"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
+                    "default": "medium"
+                  },
+                  "deadline": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-06-30T00:00:00.000Z"
+                  },
+                  "assignedTo": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "worker1@example.com"
+                    ]
+                  },
+                  "assignedBy": {
+                    "type": "string",
+                    "example": "manager@example.com"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/statistics": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get task statistics",
+        "description": "Get task statistics for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "completed": {
+                          "type": "integer"
+                        },
+                        "inProgress": {
+                          "type": "integer"
+                        },
+                        "notStarted": {
+                          "type": "integer"
+                        },
+                        "overdue": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/timeline": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get task timeline",
+        "description": "Get task timeline/gantt data for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task timeline data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get task by ID",
+        "description": "Retrieve a single task by its ID",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Update task",
+        "description": "Update task details",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "not_started",
+                      "in_progress",
+                      "completed"
+                    ]
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "deadline": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "assignedTo": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Delete task",
+        "description": "Delete a task",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/progress": {
+      "put": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Update task progress",
+        "description": "Update task progress/status",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "not_started",
+                      "in_progress",
+                      "completed"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task progress updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/photos": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Upload task photos",
+        "description": "Upload photos for a task (max 10 photos)",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "photos": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "maxItems": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Photos uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "photos": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "filename": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/time-log": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Log time spent on task",
+        "description": "Log time spent on a task",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "hours",
+                  "description"
+                ],
+                "properties": {
+                  "hours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 8
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Installed 10 solar panels"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "loggedBy": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Time logged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Task"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/workers": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get workers assigned to task",
+        "description": "Get list of workers assigned to a task",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of assigned workers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials": {
+      "get": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Get all materials",
+        "description": "Get all materials for a project with optional filtering",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cement",
+                "steel",
+                "wood",
+                "bricks",
+                "sand",
+                "gravel",
+                "paint",
+                "electrical",
+                "plumbing",
+                "other"
+              ]
+            },
+            "description": "Filter by material category"
+          },
+          {
+            "name": "ecoFriendly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter eco-friendly materials"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of materials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "materials": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Material"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Add new material",
+        "description": "Add a new material to inventory",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "name",
+                  "category",
+                  "quantity",
+                  "unit"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Recycled Steel Bars"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "cement",
+                      "steel",
+                      "wood",
+                      "bricks",
+                      "sand",
+                      "gravel",
+                      "paint",
+                      "electrical",
+                      "plumbing",
+                      "other"
+                    ],
+                    "example": "steel"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 100
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "kg",
+                      "ton",
+                      "liter",
+                      "gallon",
+                      "piece",
+                      "sqft",
+                      "sqm",
+                      "cubic_meter",
+                      "bag"
+                    ],
+                    "example": "ton"
+                  },
+                  "unitCost": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 50000
+                  },
+                  "supplier": {
+                    "type": "string",
+                    "example": "Green Materials Ltd"
+                  },
+                  "ecoFriendly": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "reorderLevel": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Material created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Material"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/estimation": {
+      "get": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Get AI material estimation",
+        "description": "Get AI-based material estimation for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "projectType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "residential",
+                "commercial",
+                "industrial",
+                "infrastructure"
+              ]
+            }
+          },
+          {
+            "name": "projectSize",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            },
+            "description": "Project duration in months"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Material estimation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "materials": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "totalCost": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/sustainability": {
+      "get": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Get sustainability metrics",
+        "description": "Get sustainability metrics and recommendations",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sustainability metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "score": {
+                          "type": "number"
+                        },
+                        "ecoFriendlyPercentage": {
+                          "type": "number"
+                        },
+                        "wastePercentage": {
+                          "type": "number"
+                        },
+                        "recommendations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/inventory-status": {
+      "get": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Get inventory status",
+        "description": "Get material inventory status including reorder alerts",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inventory status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalMaterials": {
+                          "type": "integer"
+                        },
+                        "reorderNeeded": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Material"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/{id}": {
+      "get": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Get material by ID",
+        "description": "Retrieve a single material by its ID",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Material ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Material details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Material"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Update material",
+        "description": "Update material details",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Material ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "cement",
+                      "steel",
+                      "wood",
+                      "bricks",
+                      "sand",
+                      "gravel",
+                      "paint",
+                      "electrical",
+                      "plumbing",
+                      "other"
+                    ]
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "kg",
+                      "ton",
+                      "liter",
+                      "gallon",
+                      "piece",
+                      "sqft",
+                      "sqm",
+                      "cubic_meter",
+                      "bag"
+                    ]
+                  },
+                  "unitCost": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "supplier": {
+                    "type": "string"
+                  },
+                  "ecoFriendly": {
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "reorderLevel": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Material updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Material"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Delete material",
+        "description": "Delete a material from inventory",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Material ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Material deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/{id}/usage": {
+      "post": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Log material usage",
+        "description": "Log usage of a material",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Material ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "quantity",
+                  "usedFor"
+                ],
+                "properties": {
+                  "quantity": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 10
+                  },
+                  "usedFor": {
+                    "type": "string",
+                    "example": "Foundation work"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usage logged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Material"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/materials/{id}/waste": {
+      "post": {
+        "tags": [
+          "Materials"
+        ],
+        "summary": "Log material waste",
+        "description": "Log waste of a material",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Material ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "quantity",
+                  "reason"
+                ],
+                "properties": {
+                  "quantity": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 2
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Damaged during transport"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waste logged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Material"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget": {
+      "get": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Get budget overview",
+        "description": "Get budget overview for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Budget"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Create project budget",
+        "description": "Create or set project budget",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "totalBudget"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "totalBudget": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 10000000
+                  },
+                  "allocations": {
+                    "type": "object",
+                    "properties": {
+                      "materials": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "labor": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "equipment": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "other": {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  "contingencyPercentage": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 50,
+                    "default": 10
+                  },
+                  "currency": {
+                    "type": "string",
+                    "default": "LKR"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Budget created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Budget"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget/expenses": {
+      "get": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Get all expenses",
+        "description": "Get all expenses with optional filtering",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "materials",
+                "labor",
+                "equipment",
+                "other"
+              ]
+            },
+            "description": "Filter by category"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter expenses from this date"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Filter expenses until this date"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of expenses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "_id": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "number"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "vendor": {
+                            "type": "string"
+                          },
+                          "paymentStatus": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Log new expense",
+        "description": "Log a new expense for the project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId",
+                  "category",
+                  "amount",
+                  "description"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "materials",
+                      "labor",
+                      "equipment",
+                      "other"
+                    ],
+                    "example": "materials"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "example": 50000
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Purchase of steel bars"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "invoiceNumber": {
+                    "type": "string"
+                  },
+                  "vendor": {
+                    "type": "string",
+                    "example": "Green Materials Ltd"
+                  },
+                  "paymentStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "paid",
+                      "overdue"
+                    ],
+                    "default": "pending"
+                  },
+                  "paymentDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "addedBy": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense logged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Budget"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget/{projectId}/expenses/{expenseId}": {
+      "put": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Update expense",
+        "description": "Update an existing expense",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "expenseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Expense ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "materials",
+                      "labor",
+                      "equipment",
+                      "other"
+                    ]
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "invoiceNumber": {
+                    "type": "string"
+                  },
+                  "vendor": {
+                    "type": "string"
+                  },
+                  "paymentStatus": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "paid",
+                      "overdue"
+                    ]
+                  },
+                  "paymentDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Budget"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Expense not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Delete expense",
+        "description": "Delete an expense",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "expenseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Expense ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Expense not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget/report": {
+      "get": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Generate expense report",
+        "description": "Generate expense report for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalExpenses": {
+                          "type": "number"
+                        },
+                        "expensesByCategory": {
+                          "type": "object"
+                        },
+                        "expensesTrend": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget/cost-prediction": {
+      "get": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Get AI cost predictions",
+        "description": "Get AI-based cost predictions",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "week",
+                "month",
+                "quarter"
+              ]
+            },
+            "description": "Timeframe for prediction"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cost predictions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "predictions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "materialType": {
+                                "type": "string"
+                              },
+                              "currentPrice": {
+                                "type": "number"
+                              },
+                              "predictedPrice": {
+                                "type": "number"
+                              },
+                              "marketTrend": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget/optimize": {
+      "post": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Get budget optimization suggestions",
+        "description": "Get AI-based budget optimization suggestions",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Optimization suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "suggestions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "potentialSavings": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget/analytics": {
+      "get": {
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Get budget analytics",
+        "description": "Get comprehensive budget analytics",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalBudget": {
+                          "type": "number"
+                        },
+                        "totalExpenses": {
+                          "type": "number"
+                        },
+                        "remainingBudget": {
+                          "type": "number"
+                        },
+                        "utilizationPercentage": {
+                          "type": "number"
+                        },
+                        "expensesByCategory": {
+                          "type": "object"
+                        },
+                        "budgetAlertLevel": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get all documents",
+        "description": "Get all documents for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plan",
+                "permit",
+                "contract",
+                "invoice",
+                "report",
+                "photo",
+                "other"
+              ]
+            },
+            "description": "Filter by document category"
+          },
+          {
+            "name": "isProcessed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by processing status"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "documents": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Document"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Upload document",
+        "description": "Upload a document to a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "document",
+                  "projectId",
+                  "uploadedBy"
+                ],
+                "properties": {
+                  "document": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "plan",
+                      "permit",
+                      "contract",
+                      "invoice",
+                      "report",
+                      "photo",
+                      "other"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "uploadedBy": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "string",
+                    "description": "Comma-separated tags"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Document"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/statistics": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get document statistics",
+        "description": "Get document statistics for a project",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "processed": {
+                          "type": "integer"
+                        },
+                        "byCategory": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{id}": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get document by ID",
+        "description": "Retrieve a single document by its ID",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Document"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Update document metadata",
+        "description": "Update document metadata",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "plan",
+                      "permit",
+                      "contract",
+                      "invoice",
+                      "report",
+                      "photo",
+                      "other"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Document"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Delete document",
+        "description": "Delete a document",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{id}/download": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Download document",
+        "description": "Download a document file",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{id}/extract-text": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Extract text from document",
+        "description": "Extract text from image using n8n AI",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Text extracted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extractedText": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{id}/generate-tasks": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Generate tasks from document",
+        "description": "Generate tasks from document using n8n AI",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tasks generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "generatedTasks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{id}/process": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Process document",
+        "description": "Process document (extract text and generate tasks)",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Document ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Document"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/overview": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get project overview",
+        "description": "Get project overview with status and progress",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "project": {
+                          "$ref": "#/components/schemas/Project"
+                        },
+                        "tasksSummary": {
+                          "type": "object"
+                        },
+                        "budgetSummary": {
+                          "type": "object"
+                        },
+                        "materialsSummary": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/analytics": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get progress analytics",
+        "description": "Get progress analytics and trends",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "progressTrend": {
+                          "type": "array"
+                        },
+                        "taskCompletionRate": {
+                          "type": "number"
+                        },
+                        "budgetUtilization": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/weather": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get weather data",
+        "description": "Get weather data for project location",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Location name"
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID (will use project location)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weather data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "temperature": {
+                          "type": "number"
+                        },
+                        "condition": {
+                          "type": "string"
+                        },
+                        "humidity": {
+                          "type": "number"
+                        },
+                        "forecast": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing location or projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/sustainability-score": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get sustainability score",
+        "description": "Get sustainability score and AI recommendations",
+        "security": [
+          {
+            "FirebaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sustainability score and recommendations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "score": {
+                          "type": "number"
+                        },
+                        "recommendations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "ecoFriendlyPercentage": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing projectId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

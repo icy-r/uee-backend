@@ -77,6 +77,14 @@ See `.env.example` for required configuration:
 
 Detailed API documentation is available in the `/docs` folder.
 
+### 🚀 FlutterFlow Integration
+
+Import the API into FlutterFlow using:
+- **swagger.yaml** - OpenAPI 3.0 specification (YAML format)
+- **swagger.json** - OpenAPI 3.0 specification (JSON format)
+
+📖 **[FlutterFlow Import Guide](./FLUTTERFLOW_IMPORT_GUIDE.md)** - Complete step-by-step instructions for importing and configuring the API in FlutterFlow.
+
 ### Quick Start Endpoints
 
 - **Health Check**: `GET /health`
