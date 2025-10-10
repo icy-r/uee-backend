@@ -3,6 +3,7 @@ const router = express.Router();
 const materialController = require('../controllers/material.controller');
 const { optionalAuth } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
+const { queryParsers } = require('../middleware/queryParser');
 
 // Apply optional authentication to all material routes
 router.use(optionalAuth);
@@ -16,11 +17,11 @@ router.post('/', validate(schemas.createMaterial), materialController.createMate
 
 /**
  * @route   GET /api/materials
- * @desc    Get all materials for a project
- * @query   projectId, category, ecoFriendly, page, limit
+ * @desc    Get all materials for a project with flexible filtering
+ * @query   projectId, any field with operators [eq, ne, gt, gte, lt, lte, contains, in, nin], sort, select, page, limit
  * @access  Public (MVP)
  */
-router.get('/', materialController.getMaterials);
+router.get('/', queryParsers.materials, materialController.getMaterials);
 
 /**
  * @route   GET /api/materials/estimation

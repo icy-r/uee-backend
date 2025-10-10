@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/project.controller');
 const { optionalAuth } = require('../middleware/auth');
+const { queryParsers } = require('../middleware/queryParser');
 
 // Apply optional authentication to all project routes
 router.use(optionalAuth);
@@ -15,11 +16,11 @@ router.post('/', projectController.createProject);
 
 /**
  * @route   GET /api/projects
- * @desc    Get all projects
- * @query   page, limit, status, projectType
+ * @desc    Get all projects with flexible filtering
+ * @query   any field with operators [eq, ne, gt, gte, lt, lte, contains, in, nin], sort, select, page, limit
  * @access  Public (MVP)
  */
-router.get('/', projectController.getProjects);
+router.get('/', queryParsers.projects, projectController.getProjects);
 
 /**
  * @route   GET /api/projects/:id

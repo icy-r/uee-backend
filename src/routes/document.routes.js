@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const documentController = require('../controllers/document.controller');
 const { optionalAuth } = require('../middleware/auth');
+const { queryParsers } = require('../middleware/queryParser');
 const upload = require('../utils/fileUpload');
 
 // Apply optional authentication to all document routes
@@ -16,11 +17,11 @@ router.post('/upload', upload.single('document'), documentController.uploadDocum
 
 /**
  * @route   GET /api/documents
- * @desc    Get all documents for a project
- * @query   projectId, category, isProcessed, page, limit
+ * @desc    Get all documents for a project with flexible filtering
+ * @query   projectId, any field with operators [eq, ne, gt, gte, lt, lte, contains, in, nin], sort, select, page, limit
  * @access  Public (MVP)
  */
-router.get('/', documentController.getDocuments);
+router.get('/', queryParsers.documents, documentController.getDocuments);
 
 /**
  * @route   GET /api/documents/statistics

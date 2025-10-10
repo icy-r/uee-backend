@@ -2,6 +2,8 @@ const Task = require('../models/Task');
 const Project = require('../models/Project');
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHandler');
+const QueryBuilder = require('../utils/queryBuilder');
+const queryConfig = require('../config/queryConfig');
 const path = require('path');
 const fs = require('fs');
 
@@ -33,46 +35,37 @@ exports.createTask = catchAsync(async (req, res) => {
 });
 
 /**
- * Get all tasks with filters
+ * Get all tasks with flexible filtering
  */
 exports.getTasks = catchAsync(async (req, res) => {
-  const {
-    projectId,
-    status,
-    priority,
-    assignedTo,
-    overdue,
-    page = 1,
-    limit = 50
-  } = req.query;
+  const { projectId, overdue } = req.query;
 
   if (!projectId) {
     return errorResponse(res, 'Project ID is required', 400);
   }
 
-  const query = { projectId };
-  
-  if (status) query.status = status;
-  if (priority) query.priority = priority;
-  if (assignedTo) query.assignedTo = assignedTo;
+  // Use QueryBuilder for flexible filtering
+  const queryBuilder = new QueryBuilder(Task, req.query, queryConfig.tasks)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
 
-  const skip = (page - 1) * limit;
-  const total = await Task.countDocuments(query);
-  
-  let tasks = await Task.find(query)
-    .sort({ deadline: 1, priority: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+  // Execute query
+  let tasks = await queryBuilder.build();
+  const total = await queryBuilder.countDocuments();
 
-  // Filter overdue tasks if requested
+  // Filter overdue tasks if requested (client-side filter for virtual field)
   if (overdue === 'true') {
     tasks = tasks.filter(t => t.isOverdue);
   }
 
+  const paginationMeta = queryBuilder.getPaginationMeta(total);
+
   paginatedResponse(
     res,
     tasks,
-    { page: parseInt(page), limit: parseInt(limit), total },
+    paginationMeta,
     'Tasks retrieved successfully'
   );
 });

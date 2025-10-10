@@ -85,6 +85,27 @@ Import the API into FlutterFlow using:
 
 📖 **[FlutterFlow Import Guide](./FLUTTERFLOW_IMPORT_GUIDE.md)** - Complete step-by-step instructions for importing and configuring the API in FlutterFlow.
 
+### 🔍 OData-like Query System
+
+The API supports flexible, OData-inspired filtering with operators for advanced querying:
+
+📖 **[Query System Guide](./QUERY_GUIDE.md)** - Complete guide to filtering, sorting, pagination, and field selection.
+
+**Quick Examples:**
+```bash
+# Filter with operators
+GET /api/materials?projectId=123&quantity[gt]=100
+
+# String search
+GET /api/materials?projectId=123&name[contains]=steel
+
+# Multiple filters and sorting
+GET /api/tasks?projectId=123&status=in_progress&priority=high&sort=deadline:asc
+
+# Field selection for smaller payloads
+GET /api/materials?projectId=123&select=name,quantity,unit
+```
+
 ### Quick Start Endpoints
 
 - **Health Check**: `GET /health`

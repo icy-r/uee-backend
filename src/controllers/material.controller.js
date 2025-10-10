@@ -3,6 +3,8 @@ const Project = require('../models/Project');
 const geminiService = require('../services/gemini.service');
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHandler');
+const QueryBuilder = require('../utils/queryBuilder');
+const queryConfig = require('../config/queryConfig');
 
 /**
  * Add new material to inventory
@@ -31,27 +33,25 @@ exports.createMaterial = catchAsync(async (req, res) => {
 });
 
 /**
- * Get all materials for a project
+ * Get all materials for a project with flexible filtering
  */
 exports.getMaterials = catchAsync(async (req, res) => {
-  const { projectId, category, ecoFriendly, page = 1, limit = 50 } = req.query;
+  const { projectId } = req.query;
 
   if (!projectId) {
     return errorResponse(res, 'Project ID is required', 400);
   }
 
-  const query = { projectId };
-  
-  if (category) query.category = category;
-  if (ecoFriendly !== undefined) query.ecoFriendly = ecoFriendly === 'true';
+  // Use QueryBuilder for flexible filtering
+  const queryBuilder = new QueryBuilder(Material, req.query, queryConfig.materials)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
 
-  const skip = (page - 1) * limit;
-  const total = await Material.countDocuments(query);
-  
-  const materials = await Material.find(query)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+  // Execute query
+  const materials = await queryBuilder.build();
+  const total = await queryBuilder.countDocuments();
 
   // Add reorder alerts
   const materialsWithAlerts = materials.map(m => ({
@@ -59,10 +59,12 @@ exports.getMaterials = catchAsync(async (req, res) => {
     needsReorder: m.needsReorder()
   }));
 
+  const paginationMeta = queryBuilder.getPaginationMeta(total);
+
   paginatedResponse(
     res,
     materialsWithAlerts,
-    { page: parseInt(page), limit: parseInt(limit), total },
+    paginationMeta,
     'Materials retrieved successfully'
   );
 });

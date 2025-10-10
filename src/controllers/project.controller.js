@@ -1,6 +1,8 @@
 const Project = require('../models/Project');
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHandler');
+const QueryBuilder = require('../utils/queryBuilder');
+const queryConfig = require('../config/queryConfig');
 
 /**
  * Create new project
@@ -14,28 +16,26 @@ exports.createProject = catchAsync(async (req, res) => {
 });
 
 /**
- * Get all projects
+ * Get all projects with flexible filtering
  */
 exports.getProjects = catchAsync(async (req, res) => {
-  const { page = 1, limit = 50, status, projectType } = req.query;
+  // Use QueryBuilder for flexible filtering
+  const queryBuilder = new QueryBuilder(Project, req.query, queryConfig.projects)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
 
-  const query = {};
-  
-  if (status) query.status = status;
-  if (projectType) query.projectType = projectType;
+  // Execute query
+  const projects = await queryBuilder.build();
+  const total = await queryBuilder.countDocuments();
 
-  const skip = (page - 1) * limit;
-  const total = await Project.countDocuments(query);
-  
-  const projects = await Project.find(query)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+  const paginationMeta = queryBuilder.getPaginationMeta(total);
 
   paginatedResponse(
     res,
     projects,
-    { page: parseInt(page), limit: parseInt(limit), total },
+    paginationMeta,
     'Projects retrieved successfully'
   );
 });

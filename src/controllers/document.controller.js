@@ -4,6 +4,8 @@ const Project = require('../models/Project');
 const n8nService = require('../services/n8n.service');
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHandler');
+const QueryBuilder = require('../utils/queryBuilder');
+const queryConfig = require('../config/queryConfig');
 const path = require('path');
 const fs = require('fs');
 
@@ -43,32 +45,32 @@ exports.uploadDocument = catchAsync(async (req, res) => {
 });
 
 /**
- * Get all documents for a project
+ * Get all documents for a project with flexible filtering
  */
 exports.getDocuments = catchAsync(async (req, res) => {
-  const { projectId, category, isProcessed, page = 1, limit = 50 } = req.query;
+  const { projectId } = req.query;
 
   if (!projectId) {
     return errorResponse(res, 'Project ID is required', 400);
   }
 
-  const query = { projectId };
-  
-  if (category) query.category = category;
-  if (isProcessed !== undefined) query.isProcessed = isProcessed === 'true';
+  // Use QueryBuilder for flexible filtering
+  const queryBuilder = new QueryBuilder(Document, req.query, queryConfig.documents)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
 
-  const skip = (page - 1) * limit;
-  const total = await Document.countDocuments(query);
-  
-  const documents = await Document.find(query)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit));
+  // Execute query
+  const documents = await queryBuilder.build();
+  const total = await queryBuilder.countDocuments();
+
+  const paginationMeta = queryBuilder.getPaginationMeta(total);
 
   paginatedResponse(
     res,
     documents,
-    { page: parseInt(page), limit: parseInt(limit), total },
+    paginationMeta,
     'Documents retrieved successfully'
   );
 });

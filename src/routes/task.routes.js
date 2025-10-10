@@ -3,6 +3,7 @@ const router = express.Router();
 const taskController = require('../controllers/task.controller');
 const { optionalAuth } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
+const { queryParsers } = require('../middleware/queryParser');
 const upload = require('../utils/fileUpload');
 
 // Apply optional authentication to all task routes
@@ -17,11 +18,11 @@ router.post('/', validate(schemas.createTask), taskController.createTask);
 
 /**
  * @route   GET /api/tasks
- * @desc    Get all tasks with filters
- * @query   projectId, status, priority, assignedTo, overdue, page, limit
+ * @desc    Get all tasks with flexible filtering
+ * @query   projectId, any field with operators [eq, ne, gt, gte, lt, lte, contains, in, nin], sort, select, page, limit
  * @access  Public (MVP)
  */
-router.get('/', taskController.getTasks);
+router.get('/', queryParsers.tasks, taskController.getTasks);
 
 /**
  * @route   GET /api/tasks/statistics
