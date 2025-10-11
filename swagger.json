@@ -14,7 +14,7 @@
       "description": "Local development server"
     },
     {
-      "url": "https://your-production-domain.com",
+      "url": "https://api.uee.icy-r.dev",
       "description": "Production server"
     }
   ],

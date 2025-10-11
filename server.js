@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 const connectDB = require('./src/config/database');
 const { initializeFirebase } = require('./src/config/firebase');
 const errorHandler = require('./src/middleware/errorHandler');
@@ -45,6 +47,23 @@ app.use('/api/materials', materialRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/documents', documentRoutes);
+
+// Swagger UI Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  customSiteTitle: 'Sustainable Construction API',
+  customCss: '.swagger-ui .topbar { display: none }',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true
+  }
+}));
+
+// Redirect root to API docs
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
 
 // 404 handler
 app.use((req, res) => {
