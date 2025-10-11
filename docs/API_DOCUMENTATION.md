@@ -587,10 +587,14 @@ http://localhost:5000/api
 - `page` (optional): Page number
 - `limit` (optional): Items per page
 
-### Extract Text from Image (n8n)
+### Extract Text from Image (Gemini AI)
 **Endpoint:** `POST /documents/:id/extract-text`
 
-**Description:** Extract text from image document using n8n workflow.
+**Description:** Extract text from image document using Google Gemini Vision AI. Automatically falls back to Google Cloud Vision API if Gemini fails or quota is exceeded.
+
+**AI Models Used:**
+- Primary: Google Gemini Vision (`gemini-1.5-flash`)
+- Fallback: Google Cloud Vision API (optional)
 
 **Response:**
 ```json
@@ -600,15 +604,18 @@ http://localhost:5000/api
   "data": {
     "document": {...},
     "extractedText": "Extracted text content from image...",
-    "confidence": 0.92
+    "confidence": 0.9,
+    "method": "gemini-vision"
   }
 }
 ```
 
-### Generate Tasks from Document (n8n)
+### Generate Tasks from Document (Gemini AI)
 **Endpoint:** `POST /documents/:id/generate-tasks`
 
-**Description:** Generate tasks automatically from document content using n8n workflow.
+**Description:** Generate tasks automatically from document content using Google Gemini AI. The AI analyzes the document content and generates actionable construction tasks with priorities and deadlines.
+
+**AI Model Used:** Google Gemini (`gemini-2.0-flash-exp`)
 
 **Response:**
 ```json
@@ -634,10 +641,37 @@ http://localhost:5000/api
 }
 ```
 
-### Process Document (n8n)
+### Process Document (Gemini AI)
 **Endpoint:** `POST /documents/:id/process`
 
-**Description:** Complete document processing - extract text and generate tasks in one call.
+**Description:** Complete document processing - extract text and generate tasks in one call using Google Gemini AI. This endpoint combines OCR text extraction and AI-powered task generation into a single workflow.
+
+**AI Models Used:**
+- Text Extraction: Google Gemini Vision (`gemini-1.5-flash`) with Cloud Vision fallback
+- Task Generation: Google Gemini (`gemini-2.0-flash-exp`)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Document processed successfully",
+  "data": {
+    "document": {...},
+    "extractedText": "Full text extracted from document...",
+    "tasks": [
+      {
+        "_id": "task_id",
+        "title": "Install electrical wiring",
+        "description": "Complete electrical installation based on permit requirements",
+        "priority": "high",
+        "deadline": "2024-11-15",
+        "status": "not_started"
+      }
+    ],
+    "method": "gemini-ai"
+  }
+}
+```
 
 ### Download Document
 **Endpoint:** `GET /documents/:id/download`
@@ -742,17 +776,32 @@ Uses Google Gemini AI to suggest optimal budget allocation based on:
 
 ---
 
-## n8n Workflow Integration
+## AI Integration (Google Gemini)
 
-### Image-to-Text Extraction
-The backend integrates with n8n workflows for extracting text from uploaded images (plans, permits, invoices, etc.).
+### Overview
+The backend uses Google Gemini AI for all AI-powered features, providing a unified and efficient AI solution. Previously used n8n workflows have been replaced with direct Gemini API integration (migrated October 11, 2025).
 
-**Workflow:** `/extract-text`
-- Input: Base64 encoded image or image URL
-- Output: Extracted text with confidence score
+### Text Extraction (OCR)
+The backend uses Google Gemini Vision for extracting text from uploaded images (plans, permits, invoices, etc.).
+
+**Primary Method:** Gemini Vision API (`gemini-1.5-flash`)
+- Input: Image file path
+- Output: Extracted text with confidence score (0-1)
+- Free tier: 1500 requests/day
+
+**Fallback Method:** Google Cloud Vision API (optional)
+- Activated automatically when Gemini fails or quota exceeded
+- Free tier: 1000 text detection calls/month
+- Requires additional configuration (GOOGLE_CLOUD_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS)
 
 ### Task Generation from Documents
-Automatically generates actionable tasks from document content.
+Automatically generates actionable construction tasks from document content using Gemini AI.
+
+**AI Model:** Google Gemini (`gemini-2.0-flash-exp`)
+- Analyzes document content and context
+- Generates up to 5 prioritized, actionable tasks
+- Assigns appropriate deadlines and categories
+- Free tier: 1500 requests/day
 
 **Workflow:** `/generate-tasks`
 - Input: Document text content
@@ -784,8 +833,12 @@ GEMINI_API_KEY=your-gemini-api-key
 OPENWEATHER_API_KEY=your-openweather-api-key
 DEFAULT_LOCATION=Colombo,LK
 
-# n8n
-N8N_WEBHOOK_URL=https://n8n.icy-r.dev/mcp/a38260d2-7457-432e-bde5-254a4cf83f63
+# Google Cloud Vision (Optional Fallback for OCR)
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
+GOOGLE_APPLICATION_CREDENTIALS=./path/to/service-account-key.json
+
+# DEPRECATED: n8n (replaced with Gemini AI - October 11, 2025)
+# N8N_WEBHOOK_URL=https://n8n.icy-r.dev/mcp/a38260d2-7457-432e-bde5-254a4cf83f63
 
 # File Upload
 MAX_FILE_SIZE=10485760

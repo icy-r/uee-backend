@@ -34,6 +34,7 @@ const validate = (schema) => {
 const schemas = {
   // Material schemas
   createMaterial: Joi.object({
+    projectId: Joi.string().required(),
     name: Joi.string().required().min(2).max(100),
     category: Joi.string().required(),
     quantity: Joi.number().required().min(0),
@@ -45,6 +46,7 @@ const schemas = {
   }),
 
   updateMaterial: Joi.object({
+    projectId: Joi.string().required(),
     name: Joi.string().min(2).max(100),
     category: Joi.string(),
     quantity: Joi.number().min(0),
@@ -56,12 +58,14 @@ const schemas = {
   }),
 
   logUsage: Joi.object({
+    projectId: Joi.string().required(),
     quantity: Joi.number().required().min(0),
     usedFor: Joi.string().required(),
     notes: Joi.string()
   }),
 
   logWaste: Joi.object({
+    projectId: Joi.string().required(),
     quantity: Joi.number().required().min(0),
     reason: Joi.string().required(),
     notes: Joi.string()

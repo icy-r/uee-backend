@@ -1,7 +1,9 @@
 const Document = require('../models/Document');
 const Task = require('../models/Task');
 const Project = require('../models/Project');
-const n8nService = require('../services/n8n.service');
+const geminiService = require('../services/gemini.service');
+const cloudVisionService = require('../services/cloudvision.service');
+// const n8nService = require('../services/n8n.service'); // DEPRECATED: Replaced with Gemini AI
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHandler');
 const QueryBuilder = require('../utils/queryBuilder');
@@ -145,7 +147,8 @@ exports.downloadDocument = catchAsync(async (req, res) => {
 });
 
 /**
- * Extract text from image document using n8n
+ * Extract text from image document using Gemini Vision AI
+ * Falls back to Cloud Vision API if Gemini fails
  */
 exports.extractText = catchAsync(async (req, res) => {
   const document = await Document.findById(req.params.id);
@@ -163,22 +166,28 @@ exports.extractText = catchAsync(async (req, res) => {
   await document.save();
 
   try {
-    // Read file and convert to base64
-    const fileBuffer = fs.readFileSync(document.filePath);
-    const base64Image = fileBuffer.toString('base64');
-
-    // Call n8n service for text extraction
-    const result = await n8nService.extractTextFromImage({
-      base64: base64Image,
+    // Try Gemini Vision first
+    let result = await geminiService.extractTextFromImage({
+      filePath: document.filePath,
       filename: document.filename,
       documentId: document._id
     });
+
+    // Fallback to Cloud Vision if Gemini fails
+    if (!result.success && result.fallbackNeeded && cloudVisionService.isAvailable()) {
+      console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
+      result = await cloudVisionService.extractTextFromImage({
+        filePath: document.filePath,
+        filename: document.filename,
+        documentId: document._id
+      });
+    }
 
     if (result.success) {
       document.extractedText = {
         content: result.extractedText,
         confidence: result.confidence,
-        method: 'n8n',
+        method: result.method,
         extractedAt: new Date()
       };
       document.isProcessed = true;
@@ -195,7 +204,8 @@ exports.extractText = catchAsync(async (req, res) => {
       {
         document,
         extractedText: result.extractedText,
-        confidence: result.confidence
+        confidence: result.confidence,
+        method: result.method
       },
       result.success ? 'Text extracted successfully' : 'Text extraction failed'
     );
@@ -209,7 +219,7 @@ exports.extractText = catchAsync(async (req, res) => {
 });
 
 /**
- * Generate tasks from document using n8n
+ * Generate tasks from document using Gemini AI
  */
 exports.generateTasks = catchAsync(async (req, res) => {
   const document = await Document.findById(req.params.id);
@@ -222,21 +232,29 @@ exports.generateTasks = catchAsync(async (req, res) => {
   let content = document.extractedText?.content;
 
   if (!content && document.isImage) {
-    const fileBuffer = fs.readFileSync(document.filePath);
-    const base64Image = fileBuffer.toString('base64');
-
-    const extractResult = await n8nService.extractTextFromImage({
-      base64: base64Image,
+    // Try Gemini Vision first
+    let extractResult = await geminiService.extractTextFromImage({
+      filePath: document.filePath,
       filename: document.filename,
       documentId: document._id
     });
+
+    // Fallback to Cloud Vision if needed
+    if (!extractResult.success && extractResult.fallbackNeeded && cloudVisionService.isAvailable()) {
+      console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
+      extractResult = await cloudVisionService.extractTextFromImage({
+        filePath: document.filePath,
+        filename: document.filename,
+        documentId: document._id
+      });
+    }
 
     if (extractResult.success) {
       content = extractResult.extractedText;
       document.extractedText = {
         content: extractResult.extractedText,
         confidence: extractResult.confidence,
-        method: 'n8n',
+        method: extractResult.method,
         extractedAt: new Date()
       };
     }
@@ -246,13 +264,12 @@ exports.generateTasks = catchAsync(async (req, res) => {
     return errorResponse(res, 'No content available for task generation', 400);
   }
 
-  // Generate tasks using n8n
-  const result = await n8nService.generateTasksFromDocument({
+  // Generate tasks using Gemini AI
+  const result = await geminiService.generateTasksFromText(
     content,
-    type: document.category,
-    projectId: document.projectId,
-    documentId: document._id
-  });
+    document.category,
+    document.projectId
+  );
 
   if (!result.success || result.tasks.length === 0) {
     return successResponse(
@@ -320,7 +337,8 @@ exports.generateTasks = catchAsync(async (req, res) => {
 });
 
 /**
- * Process document (extract text and generate tasks)
+ * Process document (extract text and generate tasks) using Gemini AI
+ * Falls back to Cloud Vision API if Gemini fails
  */
 exports.processDocument = catchAsync(async (req, res) => {
   const document = await Document.findById(req.params.id);
@@ -333,26 +351,50 @@ exports.processDocument = catchAsync(async (req, res) => {
   await document.save();
 
   try {
-    // Read file
-    const fileBuffer = fs.readFileSync(document.filePath);
-    const base64Image = document.isImage ? fileBuffer.toString('base64') : null;
-
-    // Process document using n8n
-    const result = await n8nService.processDocument({
-      url: base64Image ? `data:${document.fileType};base64,${base64Image}` : null,
+    // Process document using Gemini AI
+    let result = await geminiService.processDocument({
+      filePath: document.filePath,
       filename: document.filename,
       isImage: document.isImage,
+      content: document.extractedText?.content,
       type: document.category,
       projectId: document.projectId,
       documentId: document._id
     });
 
+    // If Gemini extraction failed and fallback is needed, try Cloud Vision
+    if (result.fallbackNeeded && cloudVisionService.isAvailable()) {
+      console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
+      
+      const extractResult = await cloudVisionService.extractTextFromImage({
+        filePath: document.filePath,
+        filename: document.filename,
+        documentId: document._id
+      });
+
+      if (extractResult.success) {
+        // Re-process with extracted text from Cloud Vision
+        const taskResult = await geminiService.generateTasksFromText(
+          extractResult.extractedText,
+          document.category,
+          document.projectId
+        );
+
+        result = {
+          success: true,
+          extractedText: extractResult.extractedText,
+          tasks: taskResult.success ? taskResult.tasks : [],
+          method: 'cloud-vision + gemini-ai'
+        };
+      }
+    }
+
     // Update extracted text
     if (result.extractedText) {
       document.extractedText = {
         content: result.extractedText,
-        confidence: 0.85,
-        method: 'n8n',
+        confidence: 0.9,
+        method: result.method || 'gemini-ai',
         extractedAt: new Date()
       };
     }
@@ -360,7 +402,7 @@ exports.processDocument = catchAsync(async (req, res) => {
     // Create tasks
     const createdTasks = [];
     
-    for (const taskData of result.tasks) {
+    for (const taskData of result.tasks || []) {
       try {
         const task = await Task.create({
           projectId: document.projectId,
@@ -394,7 +436,8 @@ exports.processDocument = catchAsync(async (req, res) => {
       {
         document,
         extractedText: result.extractedText,
-        tasks: createdTasks
+        tasks: createdTasks,
+        method: result.method
       },
       'Document processed successfully'
     );

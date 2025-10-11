@@ -1,9 +1,15 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fs = require('fs');
 
 class GeminiService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Model for general text tasks (materials, budget, sustainability)
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    // Model for vision tasks (OCR, image analysis)
+    this.visionModel = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Model for complex text analysis (task generation)
+    this.textModel = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
   }
 
   /**
@@ -299,6 +305,246 @@ Provide optimization suggestions in JSON format:
       console.error('Budget optimization error:', error);
       throw new Error('Failed to optimize budget: ' + error.message);
     }
+  }
+
+  /**
+   * Extract text from an image using Gemini Vision
+   * Replaces n8n text extraction
+   */
+  async extractTextFromImage(imageData) {
+    try {
+      const { filePath, filename, documentId } = imageData;
+
+      if (!filePath) {
+        throw new Error('File path is required for text extraction');
+      }
+
+      // Read the image file
+      const imageBuffer = fs.readFileSync(filePath);
+      const base64Image = imageBuffer.toString('base64');
+
+      // Prepare image data for Gemini
+      const imagePart = {
+        inlineData: {
+          data: base64Image,
+          mimeType: this.getMimeType(filename)
+        }
+      };
+
+      const prompt = `You are an expert OCR system. Extract ALL text from this image accurately.
+
+Requirements:
+- Extract text exactly as it appears
+- Maintain the structure and formatting
+- Include all visible text, labels, numbers, and annotations
+- If it's a construction document (plans, permits, invoices), identify document type
+- Return clean, structured text
+
+Provide the extracted text directly without any additional commentary.`;
+
+      const result = await this.visionModel.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const extractedText = response.text();
+
+      console.log(`✅ Gemini Vision extracted text from ${filename}: ${extractedText.length} characters`);
+
+      return {
+        success: true,
+        extractedText: extractedText.trim(),
+        confidence: 0.9, // Gemini Vision generally high confidence
+        method: 'gemini-vision',
+        processedAt: new Date(),
+        documentId
+      };
+    } catch (error) {
+      console.error('Gemini Vision text extraction error:', error.message);
+      
+      // Return error but don't crash
+      return {
+        success: false,
+        error: error.message,
+        extractedText: '',
+        confidence: 0,
+        method: 'gemini-vision',
+        fallbackNeeded: true
+      };
+    }
+  }
+
+  /**
+   * Generate construction tasks from extracted document text
+   * Replaces n8n task generation
+   */
+  async generateTasksFromText(content, documentType, projectId) {
+    try {
+      if (!content || content.trim().length < 10) {
+        return {
+          success: false,
+          error: 'Insufficient content for task generation',
+          tasks: []
+        };
+      }
+
+      const prompt = `You are an expert construction project manager. Analyze this document content and generate actionable construction tasks.
+
+Document Type: ${documentType || 'unknown'}
+Content:
+${content}
+
+Generate up to 5 specific, actionable tasks based on this document. For each task, provide:
+
+Return your response in the following JSON format:
+{
+  "tasks": [
+    {
+      "title": "Brief task title (max 100 chars)",
+      "description": "Detailed description of what needs to be done",
+      "priority": "high/medium/low",
+      "category": "construction/inspection/material/permit/safety/other",
+      "estimatedHours": number (1-40),
+      "deadline": "YYYY-MM-DD" (7-30 days from now based on priority)
+    }
+  ]
+}
+
+Rules:
+- Only generate tasks that are clearly indicated in the document
+- Be specific and actionable
+- Prioritize based on urgency and importance
+- Limit to 5 most important tasks
+- If no clear tasks, return empty array`;
+
+      const result = await this.textModel.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Parse JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn('No JSON found in Gemini response for task generation');
+        return {
+          success: false,
+          error: 'Could not parse tasks from AI response',
+          tasks: []
+        };
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      const tasks = (parsed.tasks || []).slice(0, 5); // Limit to 5 tasks
+
+      // Validate and format tasks
+      const formattedTasks = tasks.map(task => ({
+        title: task.title || 'Unnamed Task',
+        description: task.description || '',
+        priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
+        deadline: task.deadline ? new Date(task.deadline) : this.getDefaultDeadline(),
+        estimatedHours: task.estimatedHours || 0,
+        category: task.category || 'general'
+      }));
+
+      console.log(`✅ Gemini generated ${formattedTasks.length} tasks from document`);
+
+      return {
+        success: true,
+        tasks: formattedTasks,
+        generatedAt: new Date()
+      };
+    } catch (error) {
+      console.error('Gemini task generation error:', error.message);
+      
+      return {
+        success: false,
+        error: error.message,
+        tasks: []
+      };
+    }
+  }
+
+  /**
+   * Process document with combined text extraction and task generation
+   * Replaces n8n document processing workflow
+   */
+  async processDocument(documentData) {
+    try {
+      const { filePath, filename, isImage, content, type, projectId, documentId } = documentData;
+
+      let extractedText = content || '';
+
+      // Step 1: Extract text from image if needed
+      if (isImage && filePath) {
+        const extractResult = await this.extractTextFromImage({
+          filePath,
+          filename,
+          documentId
+        });
+
+        if (extractResult.success) {
+          extractedText = extractResult.extractedText;
+        } else if (extractResult.fallbackNeeded) {
+          // Return with fallback flag for controller to try Cloud Vision
+          return {
+            success: false,
+            error: 'Gemini extraction failed, fallback needed',
+            extractedText: '',
+            tasks: [],
+            fallbackNeeded: true
+          };
+        }
+      }
+
+      // Step 2: Generate tasks from extracted text
+      const taskResult = await this.generateTasksFromText(
+        extractedText,
+        type,
+        projectId
+      );
+
+      const tasks = taskResult.success ? taskResult.tasks : [];
+
+      console.log(`✅ Gemini processed document: ${extractedText.length} chars, ${tasks.length} tasks`);
+
+      return {
+        success: true,
+        extractedText,
+        tasks,
+        processedAt: new Date(),
+        method: 'gemini-ai'
+      };
+    } catch (error) {
+      console.error('Gemini document processing error:', error.message);
+      
+      return {
+        success: false,
+        error: error.message,
+        extractedText: '',
+        tasks: []
+      };
+    }
+  }
+
+  /**
+   * Get default deadline (7 days from now)
+   */
+  getDefaultDeadline() {
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 7);
+    return deadline;
+  }
+
+  /**
+   * Get MIME type from filename
+   */
+  getMimeType(filename) {
+    const ext = filename.toLowerCase().split('.').pop();
+    const mimeTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'pdf': 'application/pdf'
+    };
+    return mimeTypes[ext] || 'image/jpeg';
   }
 }
 

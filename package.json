@@ -33,6 +33,9 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
+  },
+  "optionalDependencies": {
+    "tesseract.js": "^5.0.0"
   }
 }
 

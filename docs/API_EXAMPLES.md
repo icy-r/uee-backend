@@ -417,21 +417,25 @@ curl -X GET "http://localhost:5000/api/documents/DOCUMENT_ID/download" \
   --output downloaded_document.pdf
 ```
 
-### 9. Extract Text from Image (n8n)
+### 9. Extract Text from Image (Gemini AI)
 
 ```bash
+# Uses Google Gemini Vision for OCR
+# Falls back to Cloud Vision API if Gemini fails
 curl -X POST "http://localhost:5000/api/documents/DOCUMENT_ID/extract-text"
 ```
 
-### 10. Generate Tasks from Document (n8n)
+### 10. Generate Tasks from Document (Gemini AI)
 
 ```bash
+# Uses Google Gemini AI to analyze document and generate tasks
 curl -X POST "http://localhost:5000/api/documents/DOCUMENT_ID/generate-tasks"
 ```
 
 ### 11. Process Document (Extract + Generate Tasks)
 
 ```bash
+# Complete workflow: Extract text with Gemini Vision, then generate tasks
 curl -X POST "http://localhost:5000/api/documents/DOCUMENT_ID/process"
 ```
 
@@ -642,7 +646,11 @@ curl -X POST "http://localhost:5000/api/documents/upload" \
 
 ### 4. AI Features Not Working
 
-**Solution**: Verify your Gemini API key is valid and has quota remaining.
+**Solution**: 
+- Verify your Gemini API key is valid and has quota remaining (1500 requests/day free tier)
+- Check that GEMINI_API_KEY is set in your environment variables
+- For Cloud Vision fallback: Ensure GOOGLE_CLOUD_PROJECT_ID and GOOGLE_APPLICATION_CREDENTIALS are configured
+- Check server logs for detailed error messages
 
 ---
 

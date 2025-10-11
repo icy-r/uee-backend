@@ -1,3 +1,32 @@
+/**
+ * ============================================================
+ * DEPRECATED: n8n Service - Replaced with Gemini AI
+ * ============================================================
+ * 
+ * Migration Date: October 11, 2025
+ * 
+ * This service has been replaced with a unified AI backend using:
+ * - Google Gemini AI (primary) - gemini.service.js
+ * - Google Cloud Vision API (fallback) - cloudvision.service.js
+ * 
+ * Reasons for migration:
+ * 1. Unified AI backend (single provider)
+ * 2. No external webhook dependencies
+ * 3. Better error handling and fallback mechanisms
+ * 4. Faster response times
+ * 5. Free tier: 1500 requests/day (Gemini) + 1000/month (Cloud Vision)
+ * 6. Easier maintenance and monitoring
+ * 
+ * Functions migrated:
+ * - extractTextFromImage() → geminiService.extractTextFromImage()
+ * - generateTasksFromDocument() → geminiService.generateTasksFromText()
+ * - processDocument() → geminiService.processDocument()
+ * 
+ * This code is kept for reference only. Do not use in production.
+ * ============================================================
+ */
+
+/*
 const axios = require('axios');
 
 class N8nService {
@@ -194,4 +223,13 @@ class N8nService {
 }
 
 module.exports = new N8nService();
+*/
+
+// Export empty object to prevent import errors
+module.exports = {
+  extractTextFromImage: () => { throw new Error('n8n service deprecated - use geminiService instead'); },
+  generateTasksFromDocument: () => { throw new Error('n8n service deprecated - use geminiService instead'); },
+  processDocument: () => { throw new Error('n8n service deprecated - use geminiService instead'); },
+  checkHealth: () => { throw new Error('n8n service deprecated'); }
+};
 
