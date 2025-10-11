@@ -12,6 +12,20 @@ const path = require('path');
 const fs = require('fs');
 
 /**
+ * Helper function to add preview URLs to document object
+ */
+const addPreviewUrls = (document, req) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const docObj = document.toJSON ? document.toJSON() : document;
+  
+  return {
+    ...docObj,
+    staticUrl: `${baseUrl}/uploads/${document.projectId}/${document.filename}`,
+    previewUrl: `${baseUrl}/api/documents/${document._id}/preview`
+  };
+};
+
+/**
  * Upload document
  */
 exports.uploadDocument = catchAsync(async (req, res) => {
@@ -43,7 +57,8 @@ exports.uploadDocument = catchAsync(async (req, res) => {
     uploadedBy: req.user?.uid || 'anonymous'
   });
 
-  successResponse(res, document, 'Document uploaded successfully', 201);
+  const documentWithUrls = addPreviewUrls(document, req);
+  successResponse(res, documentWithUrls, 'Document uploaded successfully', 201);
 });
 
 /**
@@ -69,9 +84,12 @@ exports.getDocuments = catchAsync(async (req, res) => {
 
   const paginationMeta = queryBuilder.getPaginationMeta(total);
 
+  // Add preview URLs to all documents
+  const documentsWithUrls = documents.map(doc => addPreviewUrls(doc, req));
+
   paginatedResponse(
     res,
-    documents,
+    documentsWithUrls,
     paginationMeta,
     'Documents retrieved successfully'
   );
@@ -87,7 +105,8 @@ exports.getDocumentById = catchAsync(async (req, res) => {
     return errorResponse(res, 'Document not found', 404);
   }
 
-  successResponse(res, document, 'Document retrieved successfully');
+  const documentWithUrls = addPreviewUrls(document, req);
+  successResponse(res, documentWithUrls, 'Document retrieved successfully');
 });
 
 /**
@@ -144,6 +163,35 @@ exports.downloadDocument = catchAsync(async (req, res) => {
   }
 
   res.download(document.filePath, document.originalName);
+});
+
+/**
+ * Preview document
+ * Displays images and PDFs inline in browser, downloads others
+ */
+exports.previewDocument = catchAsync(async (req, res) => {
+  const document = await Document.findById(req.params.id);
+
+  if (!document) {
+    return errorResponse(res, 'Document not found', 404);
+  }
+
+  if (!fs.existsSync(document.filePath)) {
+    return errorResponse(res, 'File not found on server', 404);
+  }
+
+  // Determine content disposition based on file type
+  const isImage = document.fileType.startsWith('image/');
+  const isPdf = document.fileType === 'application/pdf';
+  const disposition = (isImage || isPdf) ? 'inline' : 'attachment';
+
+  // Set appropriate headers
+  res.setHeader('Content-Type', document.fileType);
+  res.setHeader('Content-Disposition', `${disposition}; filename="${document.originalName}"`);
+
+  // Stream the file
+  const fileStream = fs.createReadStream(document.filePath);
+  fileStream.pipe(res);
 });
 
 /**

@@ -143,11 +143,15 @@ exports.getWeather = catchAsync(async (req, res) => {
     }
   }
 
-  const [currentWeather, forecast] = await Promise.all([
+
+  const results = await Promise.all([
     weatherService.getCurrentWeather(weatherLocation),
     weatherService.getForecast(weatherLocation, 5)
   ]);
 
+  console.log(results);
+  // Destructure the results
+  const [currentWeather, forecast] = results;
   const weatherData = {
     current: currentWeather,
     forecast: forecast.forecasts,

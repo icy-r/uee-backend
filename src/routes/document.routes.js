@@ -32,6 +32,13 @@ router.get('/', queryParsers.documents, documentController.getDocuments);
 router.get('/statistics', documentController.getDocumentStatistics);
 
 /**
+ * @route   GET /api/documents/:id/preview
+ * @desc    Preview document (inline for images/PDFs)
+ * @access  Public (MVP)
+ */
+router.get('/:id/preview', documentController.previewDocument);
+
+/**
  * @route   GET /api/documents/:id
  * @desc    Get single document by ID
  * @access  Public (MVP)
