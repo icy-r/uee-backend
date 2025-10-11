@@ -5,11 +5,11 @@ class GeminiService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     // Model for general text tasks (materials, budget, sustainability)
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     // Model for vision tasks (OCR, image analysis)
     this.visionModel = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     // Model for complex text analysis (task generation)
-    this.textModel = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    this.textModel = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
   }
 
   /**
