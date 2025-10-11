@@ -3,6 +3,7 @@ const Task = require('../models/Task');
 const Project = require('../models/Project');
 const geminiService = require('../services/gemini.service');
 const cloudVisionService = require('../services/cloudvision.service');
+const storageService = require('../services/storage.service');
 // const n8nService = require('../services/n8n.service'); // DEPRECATED: Replaced with Gemini AI
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/responseHandler');
@@ -10,19 +11,62 @@ const QueryBuilder = require('../utils/queryBuilder');
 const queryConfig = require('../config/queryConfig');
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios');
 
 /**
  * Helper function to add preview URLs to document object
  */
 const addPreviewUrls = (document, req) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
   const docObj = document.toJSON ? document.toJSON() : document;
+  
+  // Use storage service to get the proper URL (CDN if enabled)
+  const fileUrl = storageService.getFileUrl(document.filePath);
   
   return {
     ...docObj,
-    staticUrl: `${baseUrl}/uploads/${document.projectId}/${document.filename}`,
-    previewUrl: `${baseUrl}/api/documents/${document._id}/preview`
+    fileUrl: fileUrl,
+    // Keep legacy properties for backward compatibility
+    staticUrl: fileUrl,
+    previewUrl: fileUrl
   };
+};
+
+/**
+ * Helper function to download file from Spaces to temporary location for processing
+ */
+const downloadFileForProcessing = async (fileKey) => {
+  const fileUrl = storageService.getFileUrl(fileKey);
+  const response = await axios({
+    method: 'GET',
+    url: fileUrl,
+    responseType: 'arraybuffer'
+  });
+
+  // Create temp directory if it doesn't exist
+  const tempDir = path.join(__dirname, '../../temp');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  // Create temporary file
+  const filename = fileKey.split('/').pop();
+  const tempPath = path.join(tempDir, `${Date.now()}-${filename}`);
+  fs.writeFileSync(tempPath, response.data);
+
+  return tempPath;
+};
+
+/**
+ * Helper function to cleanup temporary file
+ */
+const cleanupTempFile = (filePath) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.error('Error cleaning up temp file:', error);
+  }
 };
 
 /**
@@ -44,13 +88,16 @@ exports.uploadDocument = catchAsync(async (req, res) => {
     return errorResponse(res, 'Project not found', 404);
   }
 
+  // Extract filename from key (projectId/filename)
+  const filename = req.file.key.split('/').pop();
+
   const document = await Document.create({
     projectId,
-    filename: req.file.filename,
+    filename: filename,
     originalName: req.file.originalname,
     fileType: req.file.mimetype,
     fileSize: req.file.size,
-    filePath: req.file.path,
+    filePath: req.file.key, // Store the Spaces key/path
     category: category || 'other',
     description,
     tags: tags ? JSON.parse(tags) : [],
@@ -138,9 +185,12 @@ exports.deleteDocument = catchAsync(async (req, res) => {
     return errorResponse(res, 'Document not found', 404);
   }
 
-  // Delete physical file
-  if (fs.existsSync(document.filePath)) {
-    fs.unlinkSync(document.filePath);
+  // Delete file from Spaces
+  try {
+    await storageService.deleteFile(document.filePath);
+  } catch (error) {
+    console.error('Error deleting file from Spaces:', error);
+    // Continue with document deletion even if file deletion fails
   }
 
   await document.deleteOne();
@@ -150,6 +200,7 @@ exports.deleteDocument = catchAsync(async (req, res) => {
 
 /**
  * Download document
+ * Downloads file from Spaces and streams to client
  */
 exports.downloadDocument = catchAsync(async (req, res) => {
   const document = await Document.findById(req.params.id);
@@ -158,11 +209,22 @@ exports.downloadDocument = catchAsync(async (req, res) => {
     return errorResponse(res, 'Document not found', 404);
   }
 
-  if (!fs.existsSync(document.filePath)) {
-    return errorResponse(res, 'File not found on server', 404);
-  }
+  // Get the file URL from Spaces
+  const fileUrl = storageService.getFileUrl(document.filePath);
 
-  res.download(document.filePath, document.originalName);
+  // Fetch file from Spaces
+  const response = await axios({
+    method: 'GET',
+    url: fileUrl,
+    responseType: 'stream'
+  });
+
+  // Set headers for download
+  res.setHeader('Content-Type', document.fileType);
+  res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+
+  // Stream the file to client
+  response.data.pipe(res);
 });
 
 /**
@@ -176,9 +238,15 @@ exports.previewDocument = catchAsync(async (req, res) => {
     return errorResponse(res, 'Document not found', 404);
   }
 
-  if (!fs.existsSync(document.filePath)) {
-    return errorResponse(res, 'File not found on server', 404);
-  }
+  // Get the file URL from Spaces
+  const fileUrl = storageService.getFileUrl(document.filePath);
+
+  // Fetch file from Spaces
+  const response = await axios({
+    method: 'GET',
+    url: fileUrl,
+    responseType: 'stream'
+  });
 
   // Determine content disposition based on file type
   const isImage = document.fileType.startsWith('image/');
@@ -189,9 +257,8 @@ exports.previewDocument = catchAsync(async (req, res) => {
   res.setHeader('Content-Type', document.fileType);
   res.setHeader('Content-Disposition', `${disposition}; filename="${document.originalName}"`);
 
-  // Stream the file
-  const fileStream = fs.createReadStream(document.filePath);
-  fileStream.pipe(res);
+  // Stream the file to client
+  response.data.pipe(res);
 });
 
 /**
@@ -213,10 +280,15 @@ exports.extractText = catchAsync(async (req, res) => {
   document.processingStatus = 'processing';
   await document.save();
 
+  let tempFilePath = null;
+
   try {
+    // Download file from Spaces for processing
+    tempFilePath = await downloadFileForProcessing(document.filePath);
+
     // Try Gemini Vision first
     let result = await geminiService.extractTextFromImage({
-      filePath: document.filePath,
+      filePath: tempFilePath,
       filename: document.filename,
       documentId: document._id
     });
@@ -225,7 +297,7 @@ exports.extractText = catchAsync(async (req, res) => {
     if (!result.success && result.fallbackNeeded && cloudVisionService.isAvailable()) {
       console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
       result = await cloudVisionService.extractTextFromImage({
-        filePath: document.filePath,
+        filePath: tempFilePath,
         filename: document.filename,
         documentId: document._id
       });
@@ -263,6 +335,11 @@ exports.extractText = catchAsync(async (req, res) => {
     await document.save();
 
     throw error;
+  } finally {
+    // Cleanup temporary file
+    if (tempFilePath) {
+      cleanupTempFile(tempFilePath);
+    }
   }
 });
 
@@ -278,24 +355,29 @@ exports.generateTasks = catchAsync(async (req, res) => {
 
   // If no text extracted yet, extract it first
   let content = document.extractedText?.content;
+  let tempFilePath = null;
 
-  if (!content && document.isImage) {
-    // Try Gemini Vision first
-    let extractResult = await geminiService.extractTextFromImage({
-      filePath: document.filePath,
-      filename: document.filename,
-      documentId: document._id
-    });
+  try {
+    if (!content && document.isImage) {
+      // Download file from Spaces for processing
+      tempFilePath = await downloadFileForProcessing(document.filePath);
 
-    // Fallback to Cloud Vision if needed
-    if (!extractResult.success && extractResult.fallbackNeeded && cloudVisionService.isAvailable()) {
-      console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
-      extractResult = await cloudVisionService.extractTextFromImage({
-        filePath: document.filePath,
+      // Try Gemini Vision first
+      let extractResult = await geminiService.extractTextFromImage({
+        filePath: tempFilePath,
         filename: document.filename,
         documentId: document._id
       });
-    }
+
+      // Fallback to Cloud Vision if needed
+      if (!extractResult.success && extractResult.fallbackNeeded && cloudVisionService.isAvailable()) {
+        console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
+        extractResult = await cloudVisionService.extractTextFromImage({
+          filePath: tempFilePath,
+          filename: document.filename,
+          documentId: document._id
+        });
+      }
 
     if (extractResult.success) {
       content = extractResult.extractedText;
@@ -369,19 +451,25 @@ exports.generateTasks = catchAsync(async (req, res) => {
     await project.calculateProgress();
   }
 
-  successResponse(
-    res,
-    {
-      document,
-      tasks: createdTasks,
-      summary: {
-        total: result.tasks.length,
-        created: createdTasks.length,
-        failed: result.tasks.length - createdTasks.length
-      }
-    },
-    `Successfully generated ${createdTasks.length} tasks from document`
-  );
+    successResponse(
+      res,
+      {
+        document,
+        tasks: createdTasks,
+        summary: {
+          total: result.tasks.length,
+          created: createdTasks.length,
+          failed: result.tasks.length - createdTasks.length
+        }
+      },
+      `Successfully generated ${createdTasks.length} tasks from document`
+    );
+  } finally {
+    // Cleanup temporary file
+    if (tempFilePath) {
+      cleanupTempFile(tempFilePath);
+    }
+  }
 });
 
 /**
@@ -398,10 +486,17 @@ exports.processDocument = catchAsync(async (req, res) => {
   document.processingStatus = 'processing';
   await document.save();
 
+  let tempFilePath = null;
+
   try {
+    // Download file from Spaces if it's an image
+    if (document.isImage) {
+      tempFilePath = await downloadFileForProcessing(document.filePath);
+    }
+
     // Process document using Gemini AI
     let result = await geminiService.processDocument({
-      filePath: document.filePath,
+      filePath: tempFilePath || document.filePath,
       filename: document.filename,
       isImage: document.isImage,
       content: document.extractedText?.content,
@@ -411,11 +506,11 @@ exports.processDocument = catchAsync(async (req, res) => {
     });
 
     // If Gemini extraction failed and fallback is needed, try Cloud Vision
-    if (result.fallbackNeeded && cloudVisionService.isAvailable()) {
+    if (result.fallbackNeeded && cloudVisionService.isAvailable() && tempFilePath) {
       console.log('⚠️  Gemini extraction failed, trying Cloud Vision fallback...');
       
       const extractResult = await cloudVisionService.extractTextFromImage({
-        filePath: document.filePath,
+        filePath: tempFilePath,
         filename: document.filename,
         documentId: document._id
       });
@@ -495,6 +590,11 @@ exports.processDocument = catchAsync(async (req, res) => {
     await document.save();
 
     throw error;
+  } finally {
+    // Cleanup temporary file
+    if (tempFilePath) {
+      cleanupTempFile(tempFilePath);
+    }
   }
 });
 

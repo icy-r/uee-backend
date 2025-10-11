@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 const connectDB = require('./src/config/database');
@@ -49,9 +48,6 @@ app.use(morgan('dev'));
 // Initialize connections
 connectDB();
 initializeFirebase();
-
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, process.env.UPLOAD_DIR || './uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

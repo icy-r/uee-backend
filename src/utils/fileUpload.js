@@ -1,25 +1,41 @@
 const multer = require('multer');
+const multerS3 = require('multer-s3');
 const path = require('path');
-const fs = require('fs');
+const { S3Client } = require('@aws-sdk/client-s3');
 
-// Ensure upload directory exists
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Initialize S3 client for DigitalOcean Spaces
+// Use path-style URLs for buckets with dots (SSL compatibility)
+const bucketName = process.env.SPACES_BUCKET || 'uee';
+const usePathStyle = bucketName.includes('.');
+
+const s3Client = new S3Client({
+  endpoint: `https://${process.env.SPACES_ENDPOINT || 'sfo3.digitaloceanspaces.com'}`,
+  region: process.env.SPACES_REGION || 'sfo3',
+  credentials: {
+    accessKeyId: process.env.SPACES_KEY,
+    secretAccessKey: process.env.SPACES_SECRET
+  },
+  forcePathStyle: usePathStyle
+});
 
 // Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const projectDir = path.join(uploadDir, req.body.projectId || 'default');
-    if (!fs.existsSync(projectDir)) {
-      fs.mkdirSync(projectDir, { recursive: true });
-    }
-    cb(null, projectDir);
-  },
-  filename: function (req, file, cb) {
+const storage = multerS3({
+  s3: s3Client,
+  bucket: bucketName,
+  acl: 'public-read',
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+  key: function (req, file, cb) {
+    const projectId = req.body.projectId || 'default';
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    const filename = uniqueSuffix + '-' + file.originalname;
+    const key = `${projectId}/${filename}`;
+    cb(null, key);
+  },
+  metadata: function (req, file, cb) {
+    cb(null, {
+      originalName: file.originalname,
+      uploadedBy: req.user?.uid || 'anonymous'
+    });
   }
 });
 
