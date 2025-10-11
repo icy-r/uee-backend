@@ -69,6 +69,7 @@ const schemas = {
 
   // Task schemas
   createTask: Joi.object({
+    projectId: Joi.string().required(),
     title: Joi.string().required().min(3).max(200),
     description: Joi.string().required(),
     deadline: Joi.date().required(),
@@ -78,6 +79,7 @@ const schemas = {
   }),
 
   updateTask: Joi.object({
+    projectId: Joi.string().required(),
     title: Joi.string().min(3).max(200),
     description: Joi.string(),
     deadline: Joi.date(),
@@ -87,11 +89,13 @@ const schemas = {
   }),
 
   updateTaskProgress: Joi.object({
+    projectId: Joi.string().required(),
     status: Joi.string().valid('not_started', 'in_progress', 'completed').required(),
     notes: Joi.string()
   }),
 
   logTime: Joi.object({
+    projectId: Joi.string().required(),
     hours: Joi.number().required().min(0).max(24),
     date: Joi.date().default(Date.now),
     description: Joi.string().required()
@@ -99,6 +103,7 @@ const schemas = {
 
   // Budget schemas
   createBudget: Joi.object({
+    projectId: Joi.string().required(),
     totalBudget: Joi.number().required().min(0),
     allocations: Joi.object({
       materials: Joi.number().min(0),
@@ -109,6 +114,7 @@ const schemas = {
   }),
 
   logExpense: Joi.object({
+    projectId: Joi.string().required(),
     category: Joi.string().required().valid('materials', 'labor', 'equipment', 'other'),
     amount: Joi.number().required().min(0),
     description: Joi.string().required(),
