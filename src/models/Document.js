@@ -9,7 +9,7 @@ const extractedTextSchema = new mongoose.Schema({
   confidence: Number,
   method: {
     type: String,
-    enum: ['n8n', 'manual']
+    enum: ['n8n', 'manual', 'gemini-vision', 'tesseract-ocr', 'cloud-vision', 'gemini-ai', 'cloud-vision + gemini-ai']
   }
 });
 
