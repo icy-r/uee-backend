@@ -226,6 +226,50 @@ exports.getWorkers = catchAsync(async (req, res) => {
 });
 
 /**
+ * Get documents/images related to a task
+ */
+exports.getTaskDocuments = catchAsync(async (req, res) => {
+  const taskId = req.params.id;
+
+  // Get the task first (to get projectId and embedded photos)
+  const task = await Task.findById(taskId);
+  if (!task) {
+    return errorResponse(res, 'Task not found', 404);
+  }
+
+  // Find documents that generated this task
+  const Document = require('../models/Document');
+  const documentsGeneratedFromTask = await Document.find({
+    'generatedTasks.taskId': taskId
+  });
+
+  // Optionally: Get all documents from the same project
+  const projectDocuments = await Document.find({
+    projectId: task.projectId
+  }).limit(20); // Limit to avoid too many results
+
+  const response = {
+    // Photos embedded in the task
+    taskPhotos: task.photos,
+    
+    // Documents that generated this task
+    relatedDocuments: documentsGeneratedFromTask,
+    
+    // All documents from the project (optional)
+    projectDocuments: projectDocuments,
+    
+    // Summary counts
+    summary: {
+      taskPhotos: task.photos.length,
+      relatedDocuments: documentsGeneratedFromTask.length,
+      projectDocuments: projectDocuments.length
+    }
+  };
+
+  successResponse(res, response, 'Task documents retrieved successfully');
+});
+
+/**
  * Get task statistics for a project
  */
 exports.getTaskStatistics = catchAsync(async (req, res) => {

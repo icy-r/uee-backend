@@ -41,6 +41,13 @@ router.get('/statistics', taskController.getTaskStatistics);
 router.get('/timeline', taskController.getTimeline);
 
 /**
+ * @route   GET /api/tasks/:id/documents
+ * @desc    Get all documents/images related to a task
+ * @access  Public (MVP)
+ */
+router.get('/:id/documents', taskController.getTaskDocuments);
+
+/**
  * @route   GET /api/tasks/:id
  * @desc    Get single task by ID
  * @access  Public (MVP)
