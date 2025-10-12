@@ -83,7 +83,6 @@ const schemas = {
   }),
 
   updateTask: Joi.object({
-    projectId: Joi.string().required(),
     title: Joi.string().min(3).max(200),
     description: Joi.string(),
     deadline: Joi.date(),
