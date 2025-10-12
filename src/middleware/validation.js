@@ -92,13 +92,11 @@ const schemas = {
   }),
 
   updateTaskProgress: Joi.object({
-    projectId: Joi.string().required(),
     status: Joi.string().valid('not_started', 'in_progress', 'completed').required(),
     notes: Joi.string()
   }),
 
   logTime: Joi.object({
-    projectId: Joi.string().required(),
     hours: Joi.number().required().min(0).max(24),
     date: Joi.date().default(Date.now),
     description: Joi.string().required()
