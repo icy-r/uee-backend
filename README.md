@@ -9,6 +9,7 @@ A comprehensive backend API for managing sustainable construction projects with 
 - ✅ **Task Management**: Task assignment, progress tracking, photo documentation, time logging
 - 💰 **Finance Management**: Budget tracking, expense logging, AI cost prediction
 - 📄 **Document Management**: File storage, image-to-text extraction, automated task generation
+- 🔍 **Real-Time Log Viewer**: Live monitoring of all API requests/responses with beautiful UI
 
 ## Tech Stack
 
@@ -109,11 +110,31 @@ GET /api/materials?projectId=123&select=name,quantity,unit
 ### Quick Start Endpoints
 
 - **Health Check**: `GET /health`
+- **Log Viewer**: `GET /logs` - Real-time monitoring UI 📊
 - **Dashboard**: `GET /api/dashboard/overview`
 - **Materials**: `GET /api/materials`
 - **Tasks**: `GET /api/tasks`
 - **Budget**: `GET /api/budget`
 - **Documents**: `GET /api/documents`
+
+### 📊 Real-Time Log Viewer
+
+Monitor all API requests and responses in real-time with a beautiful web interface:
+
+```
+http://localhost:5000/logs
+```
+
+**Features:**
+- ✨ Live updates using Socket.IO (WebSocket with fallback)
+- 🎨 Color-coded requests by method and status
+- 🔍 Smart filtering and search
+- 📊 Live statistics (total requests, errors, avg response time)
+- 💾 Export logs as JSON
+- 🔒 Automatically sanitizes sensitive data
+- 🔄 Auto-reconnection and reliable delivery
+
+📖 **[Log Viewer Guide](./LOG_VIEWER_GUIDE.md)** - Complete documentation for the real-time log monitoring system.
 
 ## Project Structure
 

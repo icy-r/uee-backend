@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const socketio = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -8,6 +10,8 @@ const swaggerDocument = require('./swagger.json');
 const connectDB = require('./src/config/database');
 const { initializeFirebase } = require('./src/config/firebase');
 const errorHandler = require('./src/middleware/errorHandler');
+const requestLogger = require('./src/middleware/logger');
+const socketLoggerService = require('./src/services/socketLogger.service');
 
 // Import routes
 const projectRoutes = require('./src/routes/project.routes');
@@ -16,9 +20,20 @@ const materialRoutes = require('./src/routes/material.routes');
 const taskRoutes = require('./src/routes/task.routes');
 const budgetRoutes = require('./src/routes/budget.routes');
 const documentRoutes = require('./src/routes/document.routes');
+const logsRoutes = require('./src/routes/logs.routes');
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = socketio(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
 const PORT = process.env.PORT || 5000;
+
+// Initialize Socket.IO logger service
+socketLoggerService.initialize(io);
 
 // Middleware
 // Configure Helmet with relaxed CSP for Swagger UI
@@ -45,6 +60,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Request/Response logger for real-time monitoring
+app.use(requestLogger);
+
 // Initialize connections
 connectDB();
 initializeFirebase();
@@ -57,6 +75,9 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Log viewer - Public endpoint for monitoring
+app.use('/logs', logsRoutes);
 
 // API Routes
 app.use('/api/projects', projectRoutes);
@@ -94,11 +115,12 @@ app.use((req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
+// Start server with Socket.IO
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📚 Environment: ${process.env.NODE_ENV}`);
   console.log(`🌍 Health check: http://localhost:${PORT}/health`);
+  console.log(`📊 Log Viewer: http://localhost:${PORT}/logs`);
 });
 
 module.exports = app;
