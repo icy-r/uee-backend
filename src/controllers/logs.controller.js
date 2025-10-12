@@ -512,7 +512,7 @@ exports.getLogViewer = (req, res) => {
                             '<span>🕐 ' + new Date(log.timestamp).toLocaleTimeString() + '</span>' +
                         '</div>' +
                     '</div>' +
-                    '<a class="toggle-details" onclick="toggleDetails(' + log.id + ')">View Details</a>' +
+                    '<a class="toggle-details" data-log-id="' + log.id + '">View Details</a>' +
                     '<div class="log-details" id="details-' + log.id + '">' +
                         queryHtml +
                         bodyHtml +
@@ -524,12 +524,16 @@ exports.getLogViewer = (req, res) => {
             }).join('');
         }
 
-        window.toggleDetails = function(logId) {
-            const detailsEl = document.getElementById('details-' + logId);
-            if (detailsEl) {
-                detailsEl.classList.toggle('show');
+        // Use event delegation for toggle details
+        logsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('toggle-details')) {
+                const logId = e.target.getAttribute('data-log-id');
+                const detailsEl = document.getElementById('details-' + logId);
+                if (detailsEl) {
+                    detailsEl.classList.toggle('show');
+                }
             }
-        };
+        });
 
         // Event listeners
         filterInput.addEventListener('input', (e) => {
