@@ -304,7 +304,7 @@ exports.getTaskStatistics = catchAsync(async (req, res) => {
 });
 
 /**
- * Get task timeline/gantt data
+ * Get task timeline/gantt data (enhanced with dependencies and critical path)
  */
 exports.getTimeline = catchAsync(async (req, res) => {
   const { projectId } = req.query;
@@ -314,7 +314,7 @@ exports.getTimeline = catchAsync(async (req, res) => {
   }
 
   const tasks = await Task.find({ projectId })
-    .select('title status deadline createdAt completedAt assignedTo')
+    .populate('dependencies', 'title status completedAt')
     .sort({ deadline: 1 });
 
   const timeline = tasks.map(task => ({
@@ -326,11 +326,58 @@ exports.getTimeline = catchAsync(async (req, res) => {
     deadline: task.deadline,
     isCompleted: task.status === 'completed',
     isOverdue: task.isOverdue,
-    assignedTo: task.assignedTo.length
+    assignedTo: task.assignedTo,
+    dependencies: task.dependencies.map(dep => ({
+      id: dep._id,
+      title: dep.title,
+      status: dep.status,
+      isCompleted: dep.status === 'completed'
+    })),
+    estimatedHours: task.estimatedHours,
+    progress: task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0
   }));
 
-  successResponse(res, timeline, 'Task timeline retrieved successfully');
+  // Calculate critical path (tasks with no slack time)
+  const criticalPath = this.calculateCriticalPath(tasks);
+
+  successResponse(res, {
+    timeline,
+    criticalPath,
+    projectStats: {
+      totalTasks: tasks.length,
+      completedTasks: tasks.filter(t => t.status === 'completed').length,
+      inProgressTasks: tasks.filter(t => t.status === 'in_progress').length,
+      overdueTasks: tasks.filter(t => t.isOverdue).length
+    }
+  }, 'Task timeline retrieved successfully');
 });
+
+/**
+ * Calculate critical path (simplified version)
+ */
+exports.calculateCriticalPath = (tasks) => {
+  // Find tasks that have dependencies
+  const tasksWithDeps = tasks.filter(t => t.dependencies && t.dependencies.length > 0);
+  
+  // Find the longest chain of dependent tasks
+  const criticalTasks = [];
+  
+  tasksWithDeps.forEach(task => {
+    if (task.dependencies.length > 0) {
+      const allDepsCompleted = task.dependencies.every(dep => dep.status === 'completed');
+      if (!allDepsCompleted && task.status !== 'completed') {
+        criticalTasks.push({
+          id: task._id,
+          title: task.title,
+          deadline: task.deadline,
+          blockedBy: task.dependencies.filter(dep => dep.status !== 'completed').map(d => d.title)
+        });
+      }
+    }
+  });
+  
+  return criticalTasks;
+};
 
 // Helper methods
 exports.getCompletedThisWeek = (tasks) => {

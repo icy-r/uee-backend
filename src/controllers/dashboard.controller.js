@@ -4,8 +4,30 @@ const Material = require('../models/Material');
 const Budget = require('../models/Budget');
 const weatherService = require('../services/weather.service');
 const geminiService = require('../services/gemini.service');
-const catchAsync = require('../utils/catchAsync');
-const { successResponse, errorResponse } = require('../utils/responseHandler');
+const sustainabilityService = require("../services/sustainability.service");
+const analyticsService = require("../services/analytics.service");
+const catchAsync = require("../utils/catchAsync");
+const { successResponse, errorResponse } = require("../utils/responseHandler");
+
+// Simple in-memory cache for dashboard data (5-minute TTL)
+const dashboardCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get cached data or execute function and cache result
+ */
+const getCached = async (key, fetchFn) => {
+  const cached = dashboardCache.get(key);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
+  const data = await fetchFn();
+  dashboardCache.set(key, { data, timestamp: Date.now() });
+
+  return data;
+};
 
 /**
  * Get project overview with status and progress
@@ -14,41 +36,43 @@ exports.getOverview = catchAsync(async (req, res) => {
   const { projectId } = req.query;
 
   if (!projectId) {
-    return errorResponse(res, 'Project ID is required', 400);
+    return errorResponse(res, "Project ID is required", 400);
   }
 
   const project = await Project.findById(projectId);
   if (!project) {
-    return errorResponse(res, 'Project not found', 404);
+    return errorResponse(res, "Project not found", 404);
   }
 
   // Get task statistics
   const tasks = await Task.find({ projectId });
   const taskStats = {
     total: tasks.length,
-    notStarted: tasks.filter(t => t.status === 'not_started').length,
-    inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-    overdue: tasks.filter(t => t.isOverdue).length
+    notStarted: tasks.filter((t) => t.status === "not_started").length,
+    inProgress: tasks.filter((t) => t.status === "in_progress").length,
+    completed: tasks.filter((t) => t.status === "completed").length,
+    overdue: tasks.filter((t) => t.isOverdue).length,
   };
 
   // Get material statistics
   const materials = await Material.find({ projectId });
   const materialStats = {
     total: materials.length,
-    needsReorder: materials.filter(m => m.needsReorder()).length,
-    totalValue: materials.reduce((sum, m) => sum + m.totalCost, 0)
+    needsReorder: materials.filter((m) => m.needsReorder()).length,
+    totalValue: materials.reduce((sum, m) => sum + m.totalCost, 0),
   };
 
   // Get budget information
   const budget = await Budget.findOne({ projectId });
-  const budgetStats = budget ? {
-    total: budget.totalBudget,
-    spent: budget.totalExpenses,
-    remaining: budget.remainingBudget,
-    utilizationPercentage: budget.utilizationPercentage,
-    alertLevel: budget.getBudgetAlertLevel()
-  } : null;
+  const budgetStats = budget
+    ? {
+        total: budget.totalBudget,
+        spent: budget.totalExpenses,
+        remaining: budget.remainingBudget,
+        utilizationPercentage: budget.utilizationPercentage,
+        alertLevel: budget.getBudgetAlertLevel(),
+      }
+    : null;
 
   // Update progress
   await project.calculateProgress();
@@ -63,15 +87,19 @@ exports.getOverview = catchAsync(async (req, res) => {
       sustainabilityScore: project.sustainabilityScore,
       startDate: project.startDate,
       expectedEndDate: project.expectedEndDate,
-      daysElapsed: Math.floor((Date.now() - project.startDate) / (1000 * 60 * 60 * 24)),
-      daysRemaining: Math.floor((project.expectedEndDate - Date.now()) / (1000 * 60 * 60 * 24))
+      daysElapsed: Math.floor(
+        (Date.now() - project.startDate) / (1000 * 60 * 60 * 24)
+      ),
+      daysRemaining: Math.floor(
+        (project.expectedEndDate - Date.now()) / (1000 * 60 * 60 * 24)
+      ),
     },
     tasks: taskStats,
     materials: materialStats,
-    budget: budgetStats
+    budget: budgetStats,
   };
 
-  successResponse(res, overview, 'Project overview retrieved successfully');
+  successResponse(res, overview, "Project overview retrieved successfully");
 });
 
 /**
@@ -81,12 +109,12 @@ exports.getAnalytics = catchAsync(async (req, res) => {
   const { projectId } = req.query;
 
   if (!projectId) {
-    return errorResponse(res, 'Project ID is required', 400);
+    return errorResponse(res, "Project ID is required", 400);
   }
 
   const project = await Project.findById(projectId);
   if (!project) {
-    return errorResponse(res, 'Project not found', 404);
+    return errorResponse(res, "Project not found", 404);
   }
 
   const tasks = await Task.find({ projectId }).sort({ createdAt: 1 });
@@ -96,21 +124,28 @@ exports.getAnalytics = catchAsync(async (req, res) => {
   // Task completion trend (last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
-  const completedTasks = tasks.filter(t => t.completedAt && t.completedAt >= thirtyDaysAgo);
+
+  const completedTasks = tasks.filter(
+    (t) => t.completedAt && t.completedAt >= thirtyDaysAgo
+  );
   const taskTrend = this.groupTasksByDay(completedTasks);
 
   // Expense trend
-  const expenseTrend = budget ? this.groupExpensesByDay(budget.expenses, thirtyDaysAgo) : [];
+  const expenseTrend = budget
+    ? this.groupExpensesByDay(budget.expenses, thirtyDaysAgo)
+    : [];
 
   // Material usage trend
-  const materialUsageTrend = this.calculateMaterialUsageTrend(materials, thirtyDaysAgo);
+  const materialUsageTrend = this.calculateMaterialUsageTrend(
+    materials,
+    thirtyDaysAgo
+  );
 
   // Sustainability trend
   const sustainabilityTrend = {
     current: project.sustainabilityScore,
     ecoFriendlyPercentage: this.calculateEcoFriendlyPercentage(materials),
-    wasteReductionPercentage: this.calculateWasteReduction(materials)
+    wasteReductionPercentage: this.calculateWasteReduction(materials),
   };
 
   const analytics = {
@@ -120,15 +155,16 @@ exports.getAnalytics = catchAsync(async (req, res) => {
     sustainabilityTrend,
     productivity: {
       tasksPerDay: completedTasks.length / 30,
-      avgTaskDuration: this.calculateAvgTaskDuration(completedTasks)
-    }
+      avgTaskDuration: this.calculateAvgTaskDuration(completedTasks),
+    },
   };
 
-  successResponse(res, analytics, 'Analytics retrieved successfully');
+  successResponse(res, analytics, "Analytics retrieved successfully");
 });
 
 /**
- * Get weather data for project location
+ * Get weather data for project location (with caching)
+ * @route GET /api/dashboard/weather
  */
 exports.getWeather = catchAsync(async (req, res) => {
   const { location, projectId } = req.query;
@@ -143,72 +179,82 @@ exports.getWeather = catchAsync(async (req, res) => {
     }
   }
 
+  if (!weatherLocation) {
+    return errorResponse(res, "Location or projectId is required", 400);
+  }
 
-  const results = await Promise.all([
-    weatherService.getCurrentWeather(weatherLocation),
-    weatherService.getForecast(weatherLocation, 5)
-  ]);
+  // Cache weather data for 1 hour
+  const cacheKey = `weather:${weatherLocation}`;
+  const weatherData = await getCached(cacheKey, async () => {
+    const results = await Promise.all([
+      weatherService.getCurrentWeather(weatherLocation),
+      weatherService.getForecast(weatherLocation, 5),
+    ]);
 
-  console.log(results);
-  // Destructure the results
-  const [currentWeather, forecast] = results;
-  const weatherData = {
-    current: currentWeather,
-    forecast: forecast.forecasts,
-    workableDays: forecast.workableDay
-  };
+    const [currentWeather, forecast] = results;
+    return {
+      current: currentWeather,
+      forecast: forecast.forecasts,
+      workableDays: forecast.workableDay,
+      location: weatherLocation,
+      fetchedAt: new Date(),
+    };
+  });
 
-  successResponse(res, weatherData, 'Weather data retrieved successfully');
+  successResponse(res, weatherData, "Weather data retrieved successfully");
 });
 
 /**
- * Get sustainability score and recommendations
+ * Get sustainability score and recommendations (enhanced with new service)
+ * @route GET /api/dashboard/sustainability
  */
 exports.getSustainabilityScore = catchAsync(async (req, res) => {
   const { projectId } = req.query;
 
   if (!projectId) {
-    return errorResponse(res, 'Project ID is required', 400);
+    return errorResponse(res, "Project ID is required", 400);
   }
 
   const project = await Project.findById(projectId);
   if (!project) {
-    return errorResponse(res, 'Project not found', 404);
+    return errorResponse(res, "Project not found", 404);
   }
 
-  const materials = await Material.find({ projectId });
-  
-  // Calculate current score
-  await project.calculateSustainabilityScore();
+  // Use new sustainability service
+  const [scores, carbonFootprint, recommendations, benchmark] =
+    await Promise.all([
+      sustainabilityService.calculateProjectScore(projectId),
+      sustainabilityService.calculateCarbonFootprint(projectId),
+      sustainabilityService.getRecommendations(projectId),
+      sustainabilityService.compareToBenchmark(projectId),
+    ]);
 
-  // Get AI recommendations
-  const sustainabilityData = {
-    materials: materials.map(m => ({
-      name: m.name,
-      quantity: m.quantity,
-      unit: m.unit,
-      ecoFriendly: m.ecoFriendly
-    })),
-    wasteGenerated: materials.reduce((sum, m) => sum + m.totalWaste, 0),
-    energyUsage: 'moderate', // This would come from actual energy data
-    currentScore: project.sustainabilityScore
-  };
-
-  const aiAnalysis = await geminiService.analyzeSustainability(sustainabilityData);
+  // Update project with latest score
+  if (project.sustainabilityScore !== scores.overallScore) {
+    project.sustainabilityScore = scores.overallScore;
+    await project.save();
+  }
 
   const result = {
-    score: project.sustainabilityScore,
-    breakdown: {
-      ecoFriendlyMaterials: this.calculateEcoFriendlyPercentage(materials),
-      wasteManagement: this.calculateWasteReduction(materials),
-      overallImpact: this.assessEnvironmentalImpact(materials)
-    },
-    aiRecommendations: aiAnalysis.recommendations || [],
-    strengths: aiAnalysis.strengths || [],
-    weaknesses: aiAnalysis.weaknesses || []
+    score: scores.overallScore,
+    scores: scores.scores,
+    metrics: scores.metrics,
+    carbonFootprint,
+    recommendations: recommendations.slice(0, 5), // Top 5 recommendations
+    benchmark,
+    grade:
+      scores.overallScore >= 90
+        ? "A"
+        : scores.overallScore >= 80
+        ? "B"
+        : scores.overallScore >= 70
+        ? "C"
+        : scores.overallScore >= 60
+        ? "D"
+        : "F",
   };
 
-  successResponse(res, result, 'Sustainability score retrieved successfully');
+  successResponse(res, result, "Sustainability score retrieved successfully");
 });
 
 // Helper methods
