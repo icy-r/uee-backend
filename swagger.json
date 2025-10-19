@@ -857,6 +857,47 @@
         }
       }
     },
+    "/api/swagger.json": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Download OpenAPI specification",
+        "description": "Download the swagger.json OpenAPI specification file",
+        "responses": {
+          "200": {
+            "description": "OpenAPI specification file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "OpenAPI 3.0.3 specification"
+                }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=\"swagger.json\""
+                },
+                "description": "Indicates file should be downloaded"
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to download swagger.json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects": {
       "get": {
         "tags": [
