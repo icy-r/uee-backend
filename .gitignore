@@ -1,17 +1,30 @@
 # Dependencies
 node_modules/
 package-lock.json
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Environment variables
 .env
+.env.local
+.env.*.local
+
+# Firebase service account keys
+*firebase*.json
+*serviceAccount*.json
+*.pem
+*.key
 
 # Logs
 logs/
 *.log
 npm-debug.log*
-
-# Uploads
-uploads/
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # OS files
 .DS_Store
@@ -22,8 +35,27 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*~
 
-# Build files
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build output
 dist/
 build/
+*.tgz
 
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database dumps
+backup/
+dump/
+*.dump
+
+# Uploads
+uploads/
+!uploads/.gitkeep

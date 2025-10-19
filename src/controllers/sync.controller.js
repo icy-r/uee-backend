@@ -1,296 +1,217 @@
-const Task = require('../models/Task');
-const Material = require('../models/Material');
-const Waste = require('../models/Waste');
-const Budget = require('../models/Budget');
+/**
+ * Sync Controller
+ * Handles manual and webhook-triggered user synchronization
+ */
+
+const { syncFirebaseUserToMongo } = require('../middleware/autoSyncFirebaseUser');
+const User = require('../models/User');
+const admin = require('firebase-admin');
 const catchAsync = require('../utils/catchAsync');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
 /**
- * Process batch sync operations from offline device
- * @route POST /api/sync/batch
+ * Manually sync a specific Firebase user to MongoDB
+ * POST /api/sync/user/:firebaseUid
  */
-exports.processBatchSync = catchAsync(async (req, res) => {
-  const { operations } = req.body;
+exports.syncUser = catchAsync(async (req, res) => {
+  const { firebaseUid } = req.params;
 
-  if (!operations || !Array.isArray(operations)) {
-    return errorResponse(res, 'Operations array is required', 400);
+  if (!firebaseUid) {
+    return errorResponse(res, 'Firebase UID is required', 400);
   }
 
-  const results = {
-    successful: [],
-    failed: [],
-    conflicts: []
-  };
+  try {
+    const result = await syncFirebaseUserToMongo(firebaseUid);
+    
+    successResponse(
+      res,
+      {
+        user: result.user,
+        synced: result.synced,
+        message: result.message
+      },
+      result.synced ? 'User synced successfully' : 'User already exists',
+      result.synced ? 201 : 200
+    );
+  } catch (error) {
+    errorResponse(res, `Failed to sync user: ${error.message}`, 500);
+  }
+});
 
-  // Process each operation
-  for (const operation of operations) {
-    try {
-      const result = await processOperation(operation, req.user.uid);
+/**
+ * Sync current authenticated user to MongoDB
+ * POST /api/sync/me
+ */
+exports.syncCurrentUser = catchAsync(async (req, res) => {
+  if (!req.user || !req.user.uid) {
+    return errorResponse(res, 'Authentication required', 401);
+  }
+
+  try {
+    const result = await syncFirebaseUserToMongo(req.user.uid);
+    
+    successResponse(
+      res,
+      {
+        user: result.user,
+        synced: result.synced,
+        message: result.message
+      },
+      result.synced ? 'User synced successfully' : 'User already exists',
+      result.synced ? 201 : 200
+    );
+  } catch (error) {
+    errorResponse(res, `Failed to sync user: ${error.message}`, 500);
+  }
+});
+
+/**
+ * Sync all Firebase users to MongoDB
+ * POST /api/sync/all
+ */
+exports.syncAllUsers = catchAsync(async (req, res) => {
+  const { force = false, batchSize = 100 } = req.body;
+
+  try {
+    // Fetch all Firebase users
+    const listUsersResult = await admin.auth().listUsers(1000);
+    const firebaseUsers = listUsersResult.users;
+
+    const stats = {
+      total: firebaseUsers.length,
+      synced: 0,
+      skipped: 0,
+      errors: 0
+    };
+
+    // Process in batches
+    for (let i = 0; i < firebaseUsers.length; i += batchSize) {
+      const batch = firebaseUsers.slice(i, i + batchSize);
       
-      if (result.conflict) {
-        results.conflicts.push({
-          operation,
-          conflict: result.conflict
-        });
-      } else {
-        results.successful.push({
-          operationId: operation.id,
-          type: operation.type,
-          model: operation.model,
-          result: result.data
-        });
-      }
-    } catch (error) {
-      results.failed.push({
-        operation,
-        error: error.message
-      });
-    }
-  }
+      await Promise.all(
+        batch.map(async (user) => {
+          try {
+            // Check if user exists
+            const existingUser = await User.findOne({ firebaseUid: user.uid });
+            
+            if (existingUser && !force) {
+              stats.skipped++;
+              return;
+            }
 
-  successResponse(res, {
-    results,
-    summary: {
-      total: operations.length,
-      successful: results.successful.length,
-      failed: results.failed.length,
-      conflicts: results.conflicts.length
+            const result = await syncFirebaseUserToMongo(user.uid);
+            if (result.synced) {
+              stats.synced++;
+            } else {
+              stats.skipped++;
+            }
+          } catch (error) {
+            console.error(`Error syncing ${user.email}:`, error.message);
+            stats.errors++;
+          }
+        })
+      );
     }
-  }, 'Batch sync completed');
+
+    successResponse(
+      res,
+      stats,
+      `Sync completed: ${stats.synced} synced, ${stats.skipped} skipped, ${stats.errors} errors`
+    );
+  } catch (error) {
+    errorResponse(res, `Failed to sync all users: ${error.message}`, 500);
+  }
 });
 
 /**
- * Get sync status for a project
- * @route GET /api/sync/status
+ * Webhook endpoint for Firebase Cloud Functions
+ * POST /api/sync/webhook
+ * 
+ * Expected payload:
+ * {
+ *   "uid": "firebase-user-id",
+ *   "email": "user@example.com",
+ *   "event": "user.created" | "user.updated"
+ * }
  */
-exports.getSyncStatus = catchAsync(async (req, res) => {
-  const { projectId, lastSyncTimestamp } = req.query;
+exports.webhookSync = catchAsync(async (req, res) => {
+  const { uid, email, event } = req.body;
 
-  if (!projectId) {
-    return errorResponse(res, 'Project ID is required', 400);
+  if (!uid) {
+    return errorResponse(res, 'Firebase UID is required', 400);
   }
 
-  const syncTime = lastSyncTimestamp ? new Date(lastSyncTimestamp) : new Date(0);
+  console.log(`📥 Webhook received: ${event} for ${email} (${uid})`);
 
-  // Get changes since last sync
-  const [tasks, materials, wastes, budgets] = await Promise.all([
-    Task.find({
-      projectId,
-      updatedAt: { $gt: syncTime }
-    }).select('_id title status updatedAt'),
+  try {
+    const result = await syncFirebaseUserToMongo(uid);
     
-    Material.find({
-      projectId,
-      updatedAt: { $gt: syncTime }
-    }).select('_id name quantity updatedAt'),
-    
-    Waste.find({
-      projectId,
-      date: { $gt: syncTime }
-    }).select('_id quantity category updatedAt'),
-    
-    Budget.find({
-      projectId,
-      updatedAt: { $gt: syncTime }
-    }).select('_id category spentAmount updatedAt')
-  ]);
-
-  const changesSinceSync = {
-    tasks: tasks.length,
-    materials: materials.length,
-    wastes: wastes.length,
-    budgets: budgets.length,
-    total: tasks.length + materials.length + wastes.length + budgets.length
-  };
-
-  successResponse(res, {
-    projectId,
-    lastSyncTimestamp: syncTime,
-    currentTimestamp: new Date(),
-    changesSinceSync,
-    changes: {
-      tasks: tasks.map(t => ({ id: t._id, title: t.title, updatedAt: t.updatedAt })),
-      materials: materials.map(m => ({ id: m._id, name: m.name, updatedAt: m.updatedAt })),
-      wastes: wastes.map(w => ({ id: w._id, category: w.category, updatedAt: w.updatedAt })),
-      budgets: budgets.map(b => ({ id: b._id, category: b.category, updatedAt: b.updatedAt }))
-    },
-    needsSync: changesSinceSync.total > 0
-  }, 'Sync status retrieved successfully');
+    successResponse(
+      res,
+      {
+        user: result.user,
+        synced: result.synced,
+        event: event
+      },
+      `Webhook processed: ${result.message}`,
+      200
+    );
+  } catch (error) {
+    console.error('Webhook sync error:', error);
+    errorResponse(res, `Webhook sync failed: ${error.message}`, 500);
+  }
 });
 
 /**
- * Process individual operation
+ * Get sync statistics
+ * GET /api/sync/stats
  */
-const processOperation = async (operation, userId) => {
-  const { id, type, model, data, timestamp, localId } = operation;
+exports.getSyncStats = catchAsync(async (req, res) => {
+  try {
+    // Get Firebase user count
+    const firebaseUsers = await admin.auth().listUsers(1000);
+    const firebaseCount = firebaseUsers.users.length;
 
-  let ModelClass;
-  switch (model) {
-    case 'Task':
-      ModelClass = Task;
-      break;
-    case 'Material':
-      ModelClass = Material;
-      break;
-    case 'Waste':
-      ModelClass = Waste;
-      break;
-    case 'Budget':
-      ModelClass = Budget;
-      break;
-    default:
-      throw new Error(`Unsupported model: ${model}`);
-  }
-
-  switch (type) {
-    case 'create':
-      return await handleCreate(ModelClass, data, localId);
+    // Get MongoDB user count
+    const mongoCount = await User.countDocuments();
     
-    case 'update':
-      return await handleUpdate(ModelClass, id, data, timestamp);
-    
-    case 'delete':
-      return await handleDelete(ModelClass, id, timestamp);
-    
-    default:
-      throw new Error(`Unsupported operation type: ${type}`);
-  }
-};
+    // Count synced users (have firebaseUid)
+    const syncedCount = await User.countDocuments({ 
+      firebaseUid: { $exists: true, $ne: null, $ne: '' } 
+    });
 
-/**
- * Handle create operation
- */
-const handleCreate = async (Model, data, localId) => {
-  const document = await Model.create(data);
-  
-  return {
-    data: {
-      _id: document._id,
-      localId,
-      createdAt: document.createdAt
-    }
-  };
-};
+    // Count users without Firebase UID
+    const unsyncedCount = await User.countDocuments({
+      $or: [
+        { firebaseUid: { $exists: false } },
+        { firebaseUid: null },
+        { firebaseUid: '' }
+      ]
+    });
 
-/**
- * Handle update operation
- */
-const handleUpdate = async (Model, id, data, timestamp) => {
-  const existing = await Model.findById(id);
-  
-  if (!existing) {
-    throw new Error(`Document not found: ${id}`);
-  }
+    // Recent syncs (users created in last 24 hours)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentSyncs = await User.countDocuments({
+      firebaseUid: { $exists: true },
+      createdAt: { $gte: yesterday }
+    });
 
-  // Check for conflicts (server version newer than client operation)
-  if (existing.updatedAt > new Date(timestamp)) {
-    return {
-      conflict: {
-        type: 'version_conflict',
-        serverVersion: existing,
-        clientTimestamp: timestamp,
-        message: 'Server has a newer version. Manual merge required.'
+    successResponse(res, {
+      firebase: {
+        total: firebaseCount
+      },
+      mongodb: {
+        total: mongoCount,
+        synced: syncedCount,
+        unsynced: unsyncedCount
+      },
+      sync: {
+        percentage: ((syncedCount / firebaseCount) * 100).toFixed(2) + '%',
+        missing: firebaseCount - syncedCount,
+        recent24h: recentSyncs
       }
-    };
+    }, 'Sync statistics retrieved successfully');
+  } catch (error) {
+    errorResponse(res, `Failed to get sync stats: ${error.message}`, 500);
   }
-
-  // Update document
-  const updated = await Model.findByIdAndUpdate(
-    id,
-    data,
-    { new: true, runValidators: true }
-  );
-
-  return {
-    data: {
-      _id: updated._id,
-      updatedAt: updated.updatedAt
-    }
-  };
-};
-
-/**
- * Handle delete operation
- */
-const handleDelete = async (Model, id, timestamp) => {
-  const existing = await Model.findById(id);
-  
-  if (!existing) {
-    // Already deleted, return success
-    return {
-      data: {
-        _id: id,
-        deleted: true
-      }
-    };
-  }
-
-  // Check for conflicts
-  if (existing.updatedAt > new Date(timestamp)) {
-    return {
-      conflict: {
-        type: 'delete_conflict',
-        serverVersion: existing,
-        clientTimestamp: timestamp,
-        message: 'Server version was updated after delete operation. Manual review required.'
-      }
-    };
-  }
-
-  await Model.findByIdAndDelete(id);
-
-  return {
-    data: {
-      _id: id,
-      deleted: true
-    }
-  };
-};
-
-/**
- * Resolve sync conflict (manual resolution)
- * @route POST /api/sync/resolve-conflict
- */
-exports.resolveConflict = catchAsync(async (req, res) => {
-  const { conflictId, resolution, data } = req.body;
-
-  if (!conflictId || !resolution) {
-    return errorResponse(res, 'Conflict ID and resolution are required', 400);
-  }
-
-  // Resolution options: 'use_server', 'use_client', 'merge'
-  let result;
-  
-  switch (resolution) {
-    case 'use_server':
-      // Keep server version, discard client changes
-      result = { action: 'kept_server_version' };
-      break;
-    
-    case 'use_client':
-      // Overwrite server with client data
-      result = await applyClientData(data);
-      break;
-    
-    case 'merge':
-      // Merge both versions (requires manual merge data)
-      result = await applyMergedData(data);
-      break;
-    
-    default:
-      return errorResponse(res, 'Invalid resolution type', 400);
-  }
-
-  successResponse(res, result, 'Conflict resolved successfully');
 });
-
-const applyClientData = async (data) => {
-  // Implementation for applying client data
-  return { action: 'applied_client_version', data };
-};
-
-const applyMergedData = async (data) => {
-  // Implementation for applying merged data
-  return { action: 'applied_merged_version', data };
-};
-

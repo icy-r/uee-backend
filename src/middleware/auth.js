@@ -1,8 +1,10 @@
 const { getFirebaseAdmin } = require('../config/firebase');
+const { syncFirebaseUserToMongo } = require('./autoSyncFirebaseUser');
 
 /**
  * Middleware to verify Firebase authentication token
  * Note: Authentication is not required for MVP, but structure is in place
+ * Auto-syncs Firebase users to MongoDB on first authentication
  */
 const authenticate = async (req, res, next) => {
   try {
@@ -24,6 +26,11 @@ const authenticate = async (req, res, next) => {
       name: decodedToken.name || decodedToken.email
     };
 
+    // Auto-sync user to MongoDB (async, don't wait)
+    syncFirebaseUserToMongo(decodedToken.uid).catch(err => {
+      console.error('Background sync failed:', err.message);
+    });
+
     next();
   } catch (error) {
     console.error('Authentication error:', error.message);
@@ -40,6 +47,7 @@ const optionalAuth = authenticate;
 
 /**
  * Required authentication - blocks unauthenticated requests (for future use)
+ * Auto-syncs Firebase users to MongoDB on first authentication
  */
 const requireAuth = async (req, res, next) => {
   try {
@@ -61,6 +69,11 @@ const requireAuth = async (req, res, next) => {
       email: decodedToken.email,
       name: decodedToken.name || decodedToken.email
     };
+
+    // Auto-sync user to MongoDB (async, don't wait)
+    syncFirebaseUserToMongo(decodedToken.uid).catch(err => {
+      console.error('Background sync failed:', err.message);
+    });
 
     next();
   } catch (error) {

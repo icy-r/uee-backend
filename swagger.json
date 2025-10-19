@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sustainable Construction Management API",
-    "description": "Backend API for Sustainable Construction MVP App with AI features.\nThis API provides endpoints for managing construction projects, tasks, materials, budgets, and documents with sustainability tracking and AI-powered features.\n",
+    "description": "Backend API for Sustainable Construction MVP App with AI features.\n\n**MVP Note:** Authentication is OPTIONAL for all endpoints in this MVP version. Firebase authentication tokens can be provided for user-specific operations but are not enforced.\n\nThis API provides endpoints for managing:\n- Construction projects with sustainability metrics\n- Task management and progress tracking\n- Material inventory with waste tracking\n- Budget management and expense tracking\n- Document management with AI-powered processing\n- User management with role-based permissions\n- Real-time analytics and reporting\n",
     "version": "1.0.0",
     "contact": {
       "name": "API Support"
@@ -22,6 +22,14 @@
     {
       "name": "Health",
       "description": "Health check endpoints"
+    },
+    {
+      "name": "Users",
+      "description": "User management, authentication, and profile operations. **MVP: Authentication optional for all endpoints**"
+    },
+    {
+      "name": "Sync",
+      "description": "Firebase user synchronization endpoints. Automatically syncs Firebase authenticated users to MongoDB"
     },
     {
       "name": "Projects",
@@ -46,6 +54,22 @@
     {
       "name": "Dashboard",
       "description": "Dashboard analytics and overview"
+    },
+    {
+      "name": "AI",
+      "description": "AI-powered features for material estimation, cost prediction, and insights"
+    },
+    {
+      "name": "Sustainability",
+      "description": "Sustainability metrics, eco-scoring, and environmental impact tracking"
+    },
+    {
+      "name": "Analytics",
+      "description": "Analytics and reporting endpoints"
+    },
+    {
+      "name": "Notifications",
+      "description": "Push notification management"
     }
   ],
   "components": {
@@ -54,7 +78,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Firebase authentication token"
+        "description": "Firebase authentication token. **MVP Note:** Authentication is OPTIONAL - not enforced on any endpoints. Provide token in format: `Bearer <firebase-id-token>` for user-specific operations."
       }
     },
     "schemas": {
@@ -177,11 +201,7 @@
               },
               "unit": {
                 "type": "string",
-                "enum": [
-                  "sqft",
-                  "sqm",
-                  "acres"
-                ],
+                "enum": ["sqft", "sqm", "acres"],
                 "example": "sqft"
               }
             }
@@ -235,20 +255,12 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "not_started",
-              "in_progress",
-              "completed"
-            ],
+            "enum": ["not_started", "in_progress", "completed"],
             "default": "not_started"
           },
           "priority": {
             "type": "string",
-            "enum": [
-              "low",
-              "medium",
-              "high"
-            ],
+            "enum": ["low", "medium", "high"],
             "default": "medium"
           },
           "deadline": {
@@ -261,10 +273,7 @@
             "items": {
               "type": "string"
             },
-            "example": [
-              "worker1@example.com",
-              "worker2@example.com"
-            ]
+            "example": ["worker1@example.com", "worker2@example.com"]
           },
           "assignedBy": {
             "type": "string",
@@ -352,13 +361,7 @@
       },
       "Material": {
         "type": "object",
-        "required": [
-          "projectId",
-          "name",
-          "category",
-          "quantity",
-          "unit"
-        ],
+        "required": ["projectId", "name", "category", "quantity", "unit"],
         "properties": {
           "_id": {
             "type": "string",
@@ -506,10 +509,7 @@
       },
       "Budget": {
         "type": "object",
-        "required": [
-          "projectId",
-          "totalBudget"
-        ],
+        "required": ["projectId", "totalBudget"],
         "properties": {
           "_id": {
             "type": "string",
@@ -559,12 +559,7 @@
                 },
                 "category": {
                   "type": "string",
-                  "enum": [
-                    "materials",
-                    "labor",
-                    "equipment",
-                    "other"
-                  ]
+                  "enum": ["materials", "labor", "equipment", "other"]
                 },
                 "amount": {
                   "type": "number",
@@ -585,11 +580,7 @@
                 },
                 "paymentStatus": {
                   "type": "string",
-                  "enum": [
-                    "pending",
-                    "paid",
-                    "overdue"
-                  ],
+                  "enum": ["pending", "paid", "overdue"],
                   "default": "pending"
                 },
                 "paymentDate": {
@@ -625,11 +616,7 @@
                 },
                 "marketTrend": {
                   "type": "string",
-                  "enum": [
-                    "increasing",
-                    "decreasing",
-                    "stable"
-                  ]
+                  "enum": ["increasing", "decreasing", "stable"]
                 }
               }
             }
@@ -745,10 +732,7 @@
               },
               "method": {
                 "type": "string",
-                "enum": [
-                  "n8n",
-                  "manual"
-                ]
+                "enum": ["n8n", "manual"]
               }
             }
           },
@@ -769,11 +753,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "pending",
-                    "created",
-                    "failed"
-                  ]
+                  "enum": ["pending", "created", "failed"]
                 }
               }
             }
@@ -790,12 +770,7 @@
           },
           "processingStatus": {
             "type": "string",
-            "enum": [
-              "pending",
-              "processing",
-              "completed",
-              "failed"
-            ],
+            "enum": ["pending", "processing", "completed", "failed"],
             "default": "pending"
           },
           "processingError": {
@@ -824,9 +799,7 @@
   "paths": {
     "/health": {
       "get": {
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "summary": "Health check",
         "description": "Check if the API is running",
         "responses": {
@@ -900,9 +873,7 @@
     },
     "/api/projects": {
       "get": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Get all projects",
         "description": "Retrieve all projects with optional filtering and pagination",
         "security": [
@@ -1009,9 +980,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Create new project",
         "description": "Create a new construction project",
         "security": [
@@ -1079,11 +1048,7 @@
                       },
                       "unit": {
                         "type": "string",
-                        "enum": [
-                          "sqft",
-                          "sqm",
-                          "acres"
-                        ],
+                        "enum": ["sqft", "sqm", "acres"],
                         "example": "sqft"
                       }
                     }
@@ -1150,9 +1115,7 @@
     },
     "/api/projects/{id}": {
       "get": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Get project by ID",
         "description": "Retrieve a single project by its ID",
         "security": [
@@ -1214,9 +1177,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Update project",
         "description": "Update project details",
         "security": [
@@ -1284,11 +1245,7 @@
                       },
                       "unit": {
                         "type": "string",
-                        "enum": [
-                          "sqft",
-                          "sqm",
-                          "acres"
-                        ]
+                        "enum": ["sqft", "sqm", "acres"]
                       }
                     }
                   }
@@ -1340,9 +1297,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Delete project",
         "description": "Delete a project",
         "security": [
@@ -1397,9 +1352,7 @@
     },
     "/api/projects/{id}/progress": {
       "put": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Update project progress",
         "description": "Calculate and update project progress based on tasks",
         "security": [
@@ -1468,9 +1421,7 @@
     },
     "/api/projects/{id}/sustainability": {
       "put": {
-        "tags": [
-          "Projects"
-        ],
+        "tags": ["Projects"],
         "summary": "Update sustainability score",
         "description": "Calculate and update sustainability score",
         "security": [
@@ -1539,9 +1490,7 @@
     },
     "/api/tasks": {
       "get": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Get all tasks",
         "description": "Retrieve all tasks with optional filtering and pagination",
         "security": [
@@ -1564,11 +1513,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "not_started",
-                "in_progress",
-                "completed"
-              ]
+              "enum": ["not_started", "in_progress", "completed"]
             },
             "description": "Filter by task status"
           },
@@ -1577,11 +1522,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high"
-              ]
+              "enum": ["low", "medium", "high"]
             },
             "description": "Filter by priority"
           },
@@ -1678,9 +1619,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Create new task",
         "description": "Create a new task for a project",
         "security": [
@@ -1719,20 +1658,12 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "not_started",
-                      "in_progress",
-                      "completed"
-                    ],
+                    "enum": ["not_started", "in_progress", "completed"],
                     "default": "not_started"
                   },
                   "priority": {
                     "type": "string",
-                    "enum": [
-                      "low",
-                      "medium",
-                      "high"
-                    ],
+                    "enum": ["low", "medium", "high"],
                     "default": "medium"
                   },
                   "deadline": {
@@ -1745,9 +1676,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "example": [
-                      "worker1@example.com"
-                    ]
+                    "example": ["worker1@example.com"]
                   },
                   "assignedBy": {
                     "type": "string",
@@ -1812,9 +1741,7 @@
     },
     "/api/tasks/statistics": {
       "get": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Get task statistics",
         "description": "Get task statistics for a project",
         "security": [
@@ -1895,9 +1822,7 @@
     },
     "/api/tasks/timeline": {
       "get": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Get task timeline",
         "description": "Get task timeline/gantt data for a project",
         "security": [
@@ -1964,9 +1889,7 @@
     },
     "/api/tasks/{id}": {
       "get": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Get task by ID",
         "description": "Retrieve a single task by its ID",
         "security": [
@@ -2028,9 +1951,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Update task",
         "description": "Update task details",
         "security": [
@@ -2064,19 +1985,11 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "not_started",
-                      "in_progress",
-                      "completed"
-                    ]
+                    "enum": ["not_started", "in_progress", "completed"]
                   },
                   "priority": {
                     "type": "string",
-                    "enum": [
-                      "low",
-                      "medium",
-                      "high"
-                    ]
+                    "enum": ["low", "medium", "high"]
                   },
                   "deadline": {
                     "type": "string",
@@ -2139,9 +2052,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Delete task",
         "description": "Delete a task",
         "security": [
@@ -2196,9 +2107,7 @@
     },
     "/api/tasks/{id}/progress": {
       "put": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Update task progress",
         "description": "Update task progress/status",
         "security": [
@@ -2223,17 +2132,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "status"
-                ],
+                "required": ["status"],
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "not_started",
-                      "in_progress",
-                      "completed"
-                    ]
+                    "enum": ["not_started", "in_progress", "completed"]
                   },
                   "notes": {
                     "type": "string"
@@ -2288,9 +2191,7 @@
     },
     "/api/tasks/{id}/photos": {
       "post": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Upload task photos",
         "description": "Upload photos for a task (max 10 photos)",
         "security": [
@@ -2390,9 +2291,7 @@
     },
     "/api/tasks/{id}/time-log": {
       "post": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Log time spent on task",
         "description": "Log time spent on a task",
         "security": [
@@ -2417,10 +2316,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "hours",
-                  "description"
-                ],
+                "required": ["hours", "description"],
                 "properties": {
                   "hours": {
                     "type": "number",
@@ -2488,9 +2384,7 @@
     },
     "/api/tasks/{id}/workers": {
       "get": {
-        "tags": [
-          "Tasks"
-        ],
+        "tags": ["Tasks"],
         "summary": "Get workers assigned to task",
         "description": "Get list of workers assigned to a task",
         "security": [
@@ -2557,9 +2451,7 @@
     },
     "/api/materials": {
       "get": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Get all materials",
         "description": "Get all materials for a project with optional filtering",
         "security": [
@@ -2682,9 +2574,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Add new material",
         "description": "Add a new material to inventory",
         "security": [
@@ -2820,9 +2710,7 @@
     },
     "/api/materials/estimation": {
       "get": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Get AI material estimation",
         "description": "Get AI-based material estimation for a project",
         "security": [
@@ -2921,9 +2809,7 @@
     },
     "/api/materials/sustainability": {
       "get": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Get sustainability metrics",
         "description": "Get sustainability metrics and recommendations",
         "security": [
@@ -3004,9 +2890,7 @@
     },
     "/api/materials/inventory-status": {
       "get": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Get inventory status",
         "description": "Get material inventory status including reorder alerts",
         "security": [
@@ -3081,9 +2965,7 @@
     },
     "/api/materials/{id}": {
       "get": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Get material by ID",
         "description": "Retrieve a single material by its ID",
         "security": [
@@ -3145,9 +3027,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Update material",
         "description": "Update material details",
         "security": [
@@ -3273,9 +3153,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Delete material",
         "description": "Delete a material from inventory",
         "security": [
@@ -3330,9 +3208,7 @@
     },
     "/api/materials/{id}/usage": {
       "post": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Log material usage",
         "description": "Log usage of a material",
         "security": [
@@ -3357,10 +3233,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "quantity",
-                  "usedFor"
-                ],
+                "required": ["quantity", "usedFor"],
                 "properties": {
                   "quantity": {
                     "type": "number",
@@ -3428,9 +3301,7 @@
     },
     "/api/materials/{id}/waste": {
       "post": {
-        "tags": [
-          "Materials"
-        ],
+        "tags": ["Materials"],
         "summary": "Log material waste",
         "description": "Log waste of a material",
         "security": [
@@ -3455,10 +3326,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "quantity",
-                  "reason"
-                ],
+                "required": ["quantity", "reason"],
                 "properties": {
                   "quantity": {
                     "type": "number",
@@ -3526,9 +3394,7 @@
     },
     "/api/budget": {
       "get": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Get budget overview",
         "description": "Get budget overview for a project",
         "security": [
@@ -3590,9 +3456,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Create project budget",
         "description": "Create or set project budget",
         "security": [
@@ -3606,10 +3470,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "projectId",
-                  "totalBudget"
-                ],
+                "required": ["projectId", "totalBudget"],
                 "properties": {
                   "projectId": {
                     "type": "string",
@@ -3701,9 +3562,7 @@
     },
     "/api/budget/expenses": {
       "get": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Get all expenses",
         "description": "Get all expenses with optional filtering",
         "security": [
@@ -3726,12 +3585,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "materials",
-                "labor",
-                "equipment",
-                "other"
-              ]
+              "enum": ["materials", "labor", "equipment", "other"]
             },
             "description": "Filter by category"
           },
@@ -3824,9 +3678,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Log new expense",
         "description": "Log a new expense for the project",
         "security": [
@@ -3840,12 +3692,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "projectId",
-                  "category",
-                  "amount",
-                  "description"
-                ],
+                "required": ["projectId", "category", "amount", "description"],
                 "properties": {
                   "projectId": {
                     "type": "string",
@@ -3853,12 +3700,7 @@
                   },
                   "category": {
                     "type": "string",
-                    "enum": [
-                      "materials",
-                      "labor",
-                      "equipment",
-                      "other"
-                    ],
+                    "enum": ["materials", "labor", "equipment", "other"],
                     "example": "materials"
                   },
                   "amount": {
@@ -3883,11 +3725,7 @@
                   },
                   "paymentStatus": {
                     "type": "string",
-                    "enum": [
-                      "pending",
-                      "paid",
-                      "overdue"
-                    ],
+                    "enum": ["pending", "paid", "overdue"],
                     "default": "pending"
                   },
                   "paymentDate": {
@@ -3947,9 +3785,7 @@
     },
     "/api/budget/{projectId}/expenses/{expenseId}": {
       "put": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Update expense",
         "description": "Update an existing expense",
         "security": [
@@ -3986,12 +3822,7 @@
                 "properties": {
                   "category": {
                     "type": "string",
-                    "enum": [
-                      "materials",
-                      "labor",
-                      "equipment",
-                      "other"
-                    ]
+                    "enum": ["materials", "labor", "equipment", "other"]
                   },
                   "amount": {
                     "type": "number",
@@ -4012,11 +3843,7 @@
                   },
                   "paymentStatus": {
                     "type": "string",
-                    "enum": [
-                      "pending",
-                      "paid",
-                      "overdue"
-                    ]
+                    "enum": ["pending", "paid", "overdue"]
                   },
                   "paymentDate": {
                     "type": "string",
@@ -4070,9 +3897,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Delete expense",
         "description": "Delete an expense",
         "security": [
@@ -4136,9 +3961,7 @@
     },
     "/api/budget/report": {
       "get": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Generate expense report",
         "description": "Generate expense report for a project",
         "security": [
@@ -4229,9 +4052,7 @@
     },
     "/api/budget/cost-prediction": {
       "get": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Get AI cost predictions",
         "description": "Get AI-based cost predictions",
         "security": [
@@ -4254,11 +4075,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "week",
-                "month",
-                "quarter"
-              ]
+              "enum": ["week", "month", "quarter"]
             },
             "description": "Timeframe for prediction"
           }
@@ -4330,9 +4147,7 @@
     },
     "/api/budget/optimize": {
       "post": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Get budget optimization suggestions",
         "description": "Get AI-based budget optimization suggestions",
         "security": [
@@ -4346,9 +4161,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "projectId"
-                ],
+                "required": ["projectId"],
                 "properties": {
                   "projectId": {
                     "type": "string",
@@ -4415,9 +4228,7 @@
     },
     "/api/budget/analytics": {
       "get": {
-        "tags": [
-          "Budget"
-        ],
+        "tags": ["Budget"],
         "summary": "Get budget analytics",
         "description": "Get comprehensive budget analytics",
         "security": [
@@ -4501,9 +4312,7 @@
     },
     "/api/documents": {
       "get": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Get all documents",
         "description": "Get all documents for a project",
         "security": [
@@ -4625,9 +4434,7 @@
     },
     "/api/documents/upload": {
       "post": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Upload document",
         "description": "Upload a document to a project",
         "security": [
@@ -4641,11 +4448,7 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "document",
-                  "projectId",
-                  "uploadedBy"
-                ],
+                "required": ["document", "projectId", "uploadedBy"],
                 "properties": {
                   "document": {
                     "type": "string",
@@ -4726,9 +4529,7 @@
     },
     "/api/documents/statistics": {
       "get": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Get document statistics",
         "description": "Get document statistics for a project",
         "security": [
@@ -4803,9 +4604,7 @@
     },
     "/api/documents/{id}": {
       "get": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Get document by ID",
         "description": "Retrieve a single document by its ID",
         "security": [
@@ -4867,9 +4666,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Update document metadata",
         "description": "Update document metadata",
         "security": [
@@ -4964,9 +4761,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Delete document",
         "description": "Delete a document",
         "security": [
@@ -5021,9 +4816,7 @@
     },
     "/api/documents/{id}/download": {
       "get": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Download document",
         "description": "Download a document file",
         "security": [
@@ -5079,9 +4872,7 @@
     },
     "/api/documents/{id}/extract-text": {
       "post": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Extract text from document",
         "description": "Extract text from image using n8n AI",
         "security": [
@@ -5150,9 +4941,7 @@
     },
     "/api/documents/{id}/generate-tasks": {
       "post": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Generate tasks from document",
         "description": "Generate tasks from document using n8n AI",
         "security": [
@@ -5224,9 +5013,7 @@
     },
     "/api/documents/{id}/process": {
       "post": {
-        "tags": [
-          "Documents"
-        ],
+        "tags": ["Documents"],
         "summary": "Process document",
         "description": "Process document (extract text and generate tasks)",
         "security": [
@@ -5290,9 +5077,7 @@
     },
     "/api/dashboard/overview": {
       "get": {
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "summary": "Get project overview",
         "description": "Get project overview with status and progress",
         "security": [
@@ -5370,9 +5155,7 @@
     },
     "/api/dashboard/analytics": {
       "get": {
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "summary": "Get progress analytics",
         "description": "Get progress analytics and trends",
         "security": [
@@ -5447,9 +5230,7 @@
     },
     "/api/dashboard/weather": {
       "get": {
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "summary": "Get weather data",
         "description": "Get weather data for project location",
         "security": [
@@ -5534,9 +5315,7 @@
     },
     "/api/dashboard/sustainability-score": {
       "get": {
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "summary": "Get sustainability score",
         "description": "Get sustainability score and AI recommendations",
         "security": [

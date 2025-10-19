@@ -6,20 +6,30 @@ const QueryBuilder = require('../utils/queryBuilder');
 
 /**
  * Get current user's profile based on Firebase UID from token
+ * For MVP: Optional authentication - if no auth, return helpful message
  */
 exports.getCurrentUserProfile = catchAsync(async (req, res) => {
   // Get Firebase UID from authenticated request
   const firebaseUid = req.user?.firebaseUid || req.user?.uid;
   
   if (!firebaseUid) {
-    return errorResponse(res, 'User not authenticated', 401);
+    return errorResponse(
+      res,
+      "Authentication required. Please provide a valid Firebase token in Authorization header",
+      401
+    );
   }
 
   // Find user by Firebase UID
   const user = await User.findOne({ firebaseUid }).select('-password');
   
   if (!user) {
-    return errorResponse(res, 'User profile not found', 404);
+    // For MVP: Create a helpful response suggesting user sync
+    return errorResponse(
+      res,
+      "User profile not found in MongoDB. Try calling POST /api/sync/me to sync your Firebase user",
+      404
+    );
   }
 
   successResponse(res, user, 'User profile retrieved successfully');
@@ -27,23 +37,40 @@ exports.getCurrentUserProfile = catchAsync(async (req, res) => {
 
 /**
  * Update current user's profile
+ * For MVP: Optional authentication - if no auth, return helpful message
  */
 exports.updateCurrentUserProfile = catchAsync(async (req, res) => {
   const firebaseUid = req.user?.firebaseUid || req.user?.uid;
   
   if (!firebaseUid) {
-    return errorResponse(res, 'User not authenticated', 401);
+    return errorResponse(
+      res,
+      "Authentication required. Please provide a valid Firebase token in Authorization header",
+      401
+    );
   }
 
   // Find user by Firebase UID
   const user = await User.findOne({ firebaseUid });
-  
+
   if (!user) {
-    return errorResponse(res, 'User profile not found', 404);
+    return errorResponse(
+      res,
+      "User profile not found in MongoDB. Try calling POST /api/sync/me to sync your Firebase user",
+      404
+    );
   }
 
-  // Update allowed fields
-  const allowedUpdates = ['name', 'phone', 'bio', 'avatar', 'preferences'];
+  // Update allowed fields (expanded for MVP)
+  const allowedUpdates = [
+    "name",
+    "phone",
+    "bio",
+    "avatar",
+    "preferences",
+    "department",
+    "position",
+  ];
   const updates = {};
   
   allowedUpdates.forEach(field => {
@@ -64,19 +91,28 @@ exports.updateCurrentUserProfile = catchAsync(async (req, res) => {
 
 /**
  * Get current user's assigned projects
+ * For MVP: Optional authentication - returns empty array if not authenticated
  */
 exports.getCurrentUserProjects = catchAsync(async (req, res) => {
   const firebaseUid = req.user?.firebaseUid || req.user?.uid;
   
   if (!firebaseUid) {
-    return errorResponse(res, 'User not authenticated', 401);
+    return successResponse(
+      res,
+      [],
+      "No authentication provided. Please login to see your projects"
+    );
   }
 
   // Find user by Firebase UID
   const user = await User.findOne({ firebaseUid });
   
   if (!user) {
-    return errorResponse(res, 'User profile not found', 404);
+    return successResponse(
+      res,
+      [],
+      "User profile not found. Please sync your Firebase user first"
+    );
   }
 
   // Get projects where user is a team member
