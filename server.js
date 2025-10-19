@@ -31,6 +31,7 @@ const analyticsRoutes = require("./src/routes/analytics.routes");
 const notificationRoutes = require("./src/routes/notification.routes");
 const reportsRoutes = require("./src/routes/reports.routes");
 const syncRoutes = require("./src/routes/sync.routes");
+const swaggerRoutes = require("./src/routes/swagger.routes");
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -112,6 +113,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/sync", syncRoutes);
+app.use("/api", swaggerRoutes);
 
 // Swagger UI Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
