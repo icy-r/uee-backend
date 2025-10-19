@@ -11,34 +11,59 @@ const admin = require('firebase-admin');
 /**
  * Map Firebase user to MongoDB user schema
  */
-function mapFirebaseUserToMongo(firebaseUser, customClaims = {}) {
-  const role = customClaims.role || 'Worker';
+async function mapFirebaseUserToMongo(firebaseUser, customClaims = {}) {
+  let role = "Worker";
+
+  // Try to get role from Firestore user_role field
+  try {
+    const db = admin.firestore();
+    const userDoc = await db.collection("users").doc(firebaseUser.uid).get();
+
+    if (userDoc.exists) {
+      const firestoreData = userDoc.data();
+      const firestoreRole = firestoreData.user_role || firestoreData.role;
+      if (firestoreRole) {
+        role = mapFirestoreRoleToMongo(firestoreRole);
+      }
+    }
+  } catch (error) {
+    console.log(
+      "Could not fetch Firestore role, using default:",
+      error.message
+    );
+  }
+
+  // Fallback to custom claims if no Firestore role
+  if (role === "Worker" && customClaims.role) {
+    role = customClaims.role;
+  }
 
   return {
     firebaseUid: firebaseUser.uid,
-    email: firebaseUser.email || '',
-    name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Unnamed User',
-    phone: firebaseUser.phoneNumber || '',
-    avatar: firebaseUser.photoURL || '',
-    role: role,
-    status: firebaseUser.disabled ? 'inactive' : 'active',
+    email: firebaseUser.email || "",
+    name:
+      firebaseUser.displayName ||
+      firebaseUser.email?.split("@")[0] ||
+      "Unnamed User",
+    phone: firebaseUser.phoneNumber || "",
+    avatar: firebaseUser.photoURL || "",
+    role: role, // ✅ Only this is mapped from Firestore user_role
+    status: firebaseUser.disabled ? "inactive" : "active",
     emailVerified: firebaseUser.emailVerified || false,
-    // Set default password (users will need to reset if they want to use MongoDB auth)
-    password: '$2b$10$defaultHashedPassword',
+    password: "$2b$10$defaultHashedPassword",
     lastLogin: new Date(),
     metadata: {
       creationTime: firebaseUser.metadata?.creationTime,
       lastSignInTime: firebaseUser.metadata?.lastSignInTime,
     },
-    // Provider data
-    providers: (firebaseUser.providerData || []).map(p => ({
+    providers: (firebaseUser.providerData || []).map((p) => ({
       providerId: p.providerId,
       uid: p.uid,
       displayName: p.displayName,
       email: p.email,
       photoURL: p.photoURL,
-      phoneNumber: p.phoneNumber
-    }))
+      phoneNumber: p.phoneNumber,
+    })),
   };
 }
 
@@ -49,32 +74,37 @@ async function syncFirebaseUserToMongo(firebaseUid) {
   try {
     // Check if user already exists in MongoDB
     let mongoUser = await User.findOne({ firebaseUid });
-    
+
     if (mongoUser) {
       // Update last login
       mongoUser.lastLogin = new Date();
       await mongoUser.save();
-      return { synced: false, user: mongoUser, message: 'User already exists' };
+      return { synced: false, user: mongoUser, message: "User already exists" };
     }
 
     // Fetch user details from Firebase
     const firebaseUser = await admin.auth().getUser(firebaseUid);
-    
+
     // Get custom claims
     const customClaims = firebaseUser.customClaims || {};
-    
-    // Map to MongoDB schema
-    const userData = mapFirebaseUserToMongo(firebaseUser, customClaims);
-    
+
+    // Map to MongoDB schema (now async to fetch Firestore role)
+    const userData = await mapFirebaseUserToMongo(firebaseUser, customClaims);
+
     // Create new user in MongoDB
     mongoUser = new User(userData);
     mongoUser.setDefaultPermissions();
     await mongoUser.save();
-    
-    console.log(`✓ Auto-synced new user: ${firebaseUser.email} (${firebaseUid})`);
-    
-    return { synced: true, user: mongoUser, message: 'User created successfully' };
-    
+
+    console.log(
+      `✓ Auto-synced new user: ${firebaseUser.email} (${firebaseUid})`
+    );
+
+    return {
+      synced: true,
+      user: mongoUser,
+      message: "User created successfully",
+    };
   } catch (error) {
     console.error(`✗ Failed to sync user ${firebaseUid}:`, error.message);
     throw error;
